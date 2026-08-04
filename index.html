@@ -18,7 +18,7 @@
         <img src="assets/logo_formica.png" alt="Formica Logo" class="brand-logo-img" />
         <div class="brand-text">
           <h1>FORMICA <span class="badge-tag">Queen Studio</span></h1>
-          <p>The Formic Mesh • Event Mesh, K/V Cache & Universal Purging ($0 Cost)</p>
+          <p>The Formic Mesh • Event Mesh, Redis K/V Chambers & Universal Purging ($0 Cost)</p>
         </div>
       </div>
       <div class="top-controls">
@@ -52,7 +52,7 @@
       <nav class="nav-tabs">
         <button class="tab-btn active" data-tab="tab-overview">📊 Vista General</button>
         <button class="tab-btn" data-tab="tab-pheromones">🧪 Pheromones (Pub/Sub)</button>
-        <button class="tab-btn" data-tab="tab-chambers">🕳️ Chambers (K/V Store)</button>
+        <button class="tab-btn" data-tab="tab-chambers">🕳️ Chambers (Redis K/V DBs)</button>
         <button class="tab-btn" data-tab="tab-foragers">🍃 Foragers (Telemetría)</button>
         <button class="tab-btn" data-tab="tab-soldiers">🛡️ Soldiers (WAF Guard)</button>
         <button class="tab-btn" data-tab="tab-legionarys">🌾 Legionarys (Purga Universal)</button>
@@ -73,7 +73,7 @@
             <div class="stat-card">
               <div class="stat-icon">🕳️</div>
               <div class="stat-info">
-                <div class="stat-label">Entradas K/V Chambers</div>
+                <div class="stat-label">Instancias K/V Chambers</div>
                 <div class="stat-value" id="stat-kv-count">0</div>
               </div>
             </div>
@@ -114,11 +114,11 @@
           <div class="cards-grid" id="subs-grid"></div>
         </section>
 
-        <!-- 🕳️ TAB 3: CHAMBERS -->
+        <!-- 🕳️ TAB 3: CHAMBERS (REDIS-LIKE MULTI-KEY DBs) -->
         <section id="tab-chambers" class="tab-content">
           <div class="section-header">
-            <h2>🕳️ Chambers — Almacén K/V & Caché de Alta Velocidad</h2>
-            <button id="btn-new-kv" class="btn btn-accent">+ Nueva Entrada K/V</button>
+            <h2>🕳️ Chambers — Cámaras K/V Estilo Redis (Multi-Claves & TTL)</h2>
+            <button id="btn-new-kv" class="btn btn-accent">+ Nueva Cámara K/V (Redis DB)</button>
           </div>
           <div class="cards-grid" id="kv-grid"></div>
         </section>
@@ -218,25 +218,58 @@
     </div>
   </div>
 
-  <!-- Modal 3: Chamber K/V -->
+  <!-- Modal 3: Chamber Redis-like Multi-Key Database & Entry Builder -->
   <div id="modal-kv" class="modal-backdrop hidden">
-    <div class="modal-box glass-card">
-      <h3>Nueva Entrada K/V Chambers</h3>
-      <div class="form-group">
-        <label>Clave (Key):</label>
-        <input type="text" id="kv-key" placeholder="session_token_123" />
+    <div class="modal-box glass-card" style="max-width: 580px;">
+      <h3 id="modal-kv-title">Cámara K/V (Instancia Redis DB)</h3>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+        <div>
+          <label>Nombre de la Cámara:</label>
+          <input type="text" id="chamber-name" placeholder="Sesiones de Usuarios Prod" />
+        </div>
+        <div>
+          <label>ID de la Cámara (`chamberId`):</label>
+          <input type="text" id="chamber-id" placeholder="chamber_sessions" />
+        </div>
       </div>
+
       <div class="form-group">
-        <label>Valor (Value):</label>
-        <input type="text" id="kv-value" placeholder="active_authenticated" />
+        <label>Descripción / Propósito (Opcional):</label>
+        <input type="text" id="chamber-desc" placeholder="Caché de tokens JWT y sesiones activas en producción" />
       </div>
-      <div class="form-group">
-        <label>TTL en Segundos (0 = Permanente):</label>
-        <input type="number" id="kv-ttl" value="0" />
+
+      <!-- Dynamic Key/Value Entry Builder Sub-Form -->
+      <div class="group-builder-card">
+        <h4>➕ Añadir Clave / Valor / TTL a esta Cámara</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Clave (Key):</label>
+            <input type="text" id="builder-entry-key" placeholder="user_session_9912" />
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Valor (Value / JSON):</label>
+            <input type="text" id="builder-entry-val" placeholder='{"userId": "usr_99", "role": "admin"}' />
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+          <div style="flex:1;">
+            <label style="font-size:0.75rem; color:var(--text-muted);">TTL en Segundos (0 = Permanente):</label>
+            <input type="number" id="builder-entry-ttl" placeholder="3600" />
+          </div>
+          <button id="btn-add-chamber-entry" class="btn btn-accent btn-sm" type="button" style="height: 38px;">+ Añadir Clave</button>
+        </div>
       </div>
+
+      <!-- Added Entries Container List -->
+      <div class="form-group" style="margin-top: 16px;">
+        <label>Claves Almacenadas en esta Cámara:</label>
+        <div id="chamber-added-entries-list" class="added-groups-list"></div>
+      </div>
+
       <div class="modal-actions">
         <button id="btn-kv-cancel" class="btn btn-secondary">Cancelar</button>
-        <button id="btn-kv-save" class="btn btn-primary">Guardar K/V</button>
+        <button id="btn-kv-save" class="btn btn-primary">Guardar Cámara K/V</button>
       </div>
     </div>
   </div>

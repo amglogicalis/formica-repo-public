@@ -1,4 +1,4 @@
-// FORMICA Queen Studio — Web Console Application with Refined WAF Soldiers & Placeholders
+// FORMICA Queen Studio — Web Console Application with Redis-like Multi-Key Chambers & WAF Soldiers
 
 class FormicaQueenConsole {
   constructor() {
@@ -15,6 +15,8 @@ class FormicaQueenConsole {
     this.editingSubId = null;
     this.editingWafId = null;
     this.editingAdapterId = null;
+    this.editingChamberId = null;
+    this.currentChamberEntries = [];
     this.currentAdapterGroups = [];
     this.simulatedAdapterGroups = [];
 
@@ -70,10 +72,11 @@ class FormicaQueenConsole {
     document.getElementById('btn-event-cancel').addEventListener('click', () => this.closeEventModal());
     document.getElementById('btn-event-pub').addEventListener('click', () => this.pubEvent());
 
-    // Modal 3: K/V Chambers
+    // Modal 3: Redis-like Chamber Multi-Key DB
     document.getElementById('btn-new-kv').addEventListener('click', () => this.openKvModal());
     document.getElementById('btn-kv-cancel').addEventListener('click', () => this.closeKvModal());
     document.getElementById('btn-kv-save').addEventListener('click', () => this.saveKv());
+    document.getElementById('btn-add-chamber-entry').addEventListener('click', () => this.addChamberEntryToBuilder());
 
     // Modal 4: Foragers Test Log
     document.getElementById('btn-new-log').addEventListener('click', () => this.openLogModal());
@@ -182,8 +185,28 @@ class FormicaQueenConsole {
         'sub_lumina': { subId: 'sub_lumina', topic: 'user.signup', subscriberName: 'Lumina-IAM', active: true }
       },
       chambers: {
-        'session_active': { key: 'session_active', value: 'authenticated', expiresAt: null },
-        'temp_cache': { key: 'temp_cache', value: 'dom_scraped_data', expiresAt: new Date(Date.now() - 3600000).toISOString() }
+        'chamber_sessions': {
+          chamberId: 'chamber_sessions',
+          name: 'Bóveda de Sesiones y Tokens',
+          description: 'Caché Redis de tokens JWT de producción y sesiones activas',
+          entries: {
+            'session_usr_9981': { key: 'session_usr_9981', value: { role: 'admin', ip: '192.168.1.50' }, ttlSeconds: 3600, expiresAt: new Date(Date.now() + 3600000).toISOString() },
+            'otp_usr_1022': { key: 'otp_usr_1022', value: '884920', ttlSeconds: 300, expiresAt: new Date(Date.now() + 300000).toISOString() }
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        'chamber_global_cache': {
+          chamberId: 'chamber_global_cache',
+          name: 'Caché Global y Feature Flags',
+          description: 'Respuestas pre-renderizadas de API y banderas de producción',
+          entries: {
+            'feature_maintenance': { key: 'feature_maintenance', value: false, expiresAt: null },
+            'dom_scraped_data': { key: 'dom_scraped_data', value: 'temp_raw_content', ttlSeconds: -10, expiresAt: new Date(Date.now() - 3600000).toISOString() }
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
       },
       logs: [
         { level: 'info', source: 'Pheromones', message: 'Event Published on topic secret.triggered', timestamp: new Date().toISOString() },
@@ -281,24 +304,45 @@ class FormicaQueenConsole {
   renderKv() {
     const grid = document.getElementById('kv-grid');
     grid.innerHTML = '';
-    const items = Object.values(this.state.chambers || {});
-    if (items.length === 0) {
-      grid.innerHTML = `<p style="color:var(--text-muted);">No hay entradas K/V en Chambers. Haz clic en '+ Nueva Entrada K/V'.</p>`;
+    const chambers = Object.values(this.state.chambers || {});
+    if (chambers.length === 0) {
+      grid.innerHTML = `<p style="color:var(--text-muted);">No hay Cámaras K/V registradas. Haz clic en '+ Nueva Cámara K/V'.</p>`;
       return;
     }
 
-    items.forEach(i => {
-      const isExp = i.expiresAt && new Date() > new Date(i.expiresAt);
+    chambers.forEach(c => {
+      const isDb = 'entries' in c;
+      const entries = isDb ? Object.values(c.entries || {}) : [{ key: c.key, value: c.value, expiresAt: c.expiresAt }];
+      const activeCount = entries.filter(e => !e.expiresAt || new Date() <= new Date(e.expiresAt)).length;
+      const id = isDb ? c.chamberId : c.key;
+      const name = isDb ? c.name : `Cámara ${c.key}`;
+
       const card = document.createElement('div');
       card.className = 'resource-card';
+
+      const entriesHtml = entries.map(e => {
+        const isExp = e.expiresAt && new Date() > new Date(e.expiresAt);
+        return `
+          <div style="font-size:0.8rem; margin-bottom:6px; background:rgba(0,0,0,0.3); padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong style="color:var(--text);">${e.key}</strong>: <span style="color:var(--text-muted);">${JSON.stringify(e.value)}</span>
+            </div>
+            <span style="font-size:0.75rem; color:${isExp ? 'var(--danger)' : 'var(--accent)'}; font-weight:600;">
+              ${isExp ? '⚠️ EXPIRADO' : (e.expiresAt ? '⏱️ Expira' : '♾️ PERMANENTE')}
+            </span>
+          </div>
+        `;
+      }).join('');
+
       card.innerHTML = `
-        <div class="resource-card-title">${i.key}</div>
-        <div class="resource-card-sub">Valor: ${JSON.stringify(i.value)}</div>
-        <div style="font-size:0.8rem; color:${isExp ? 'var(--danger)' : 'var(--primary)'};">
-          ${isExp ? '⚠️ EXPIRADO' : (i.expiresAt ? 'Expira: ' + new Date(i.expiresAt).toLocaleTimeString() : '♾️ PERMANENTE')}
+        <div class="resource-card-title">🕳️ ${name}</div>
+        <div class="resource-card-sub" style="font-size:0.8rem;">ID: <code>${id}</code> (${activeCount}/${entries.length} claves activas)</div>
+        <div style="margin-bottom:12px; margin-top:8px;">
+          ${entriesHtml || '<span style="color:var(--text-muted); font-size:0.8rem;">Sin claves guardadas</span>'}
         </div>
         <div class="resource-card-actions">
-          <button class="btn btn-danger btn-sm" onclick="consoleApp.delKv('${i.key}')">🗑️ Eliminar</button>
+          <button class="btn btn-secondary btn-sm" onclick="consoleApp.editKv('${id}')">✏️ Configurar Claves</button>
+          <button class="btn btn-danger btn-sm" onclick="consoleApp.delKv('${id}')">🗑️ Eliminar Cámara</button>
         </div>
       `;
       grid.appendChild(card);
@@ -459,25 +503,128 @@ class FormicaQueenConsole {
     this.toast(`Evento publicado en el tópico '${topic}'`);
   }
 
-  openKvModal() { document.getElementById('modal-kv').classList.remove('hidden'); }
+  // --- REDIS-LIKE CHAMBER MULTI-KEY DATABASE MODAL HANDLERS ---
+  openKvModal(chamberId = null) {
+    this.editingChamberId = chamberId;
+
+    if (chamberId && this.state.chambers[chamberId]) {
+      const c = this.state.chambers[chamberId];
+      const isDb = 'entries' in c;
+
+      document.getElementById('modal-kv-title').textContent = 'Editar Cámara K/V';
+      document.getElementById('chamber-name').value = isDb ? c.name : `Cámara ${c.key}`;
+      document.getElementById('chamber-id').value = isDb ? c.chamberId : c.key;
+      document.getElementById('chamber-desc').value = isDb ? (c.description || '') : '';
+
+      if (isDb) {
+        this.currentChamberEntries = Object.values(c.entries || []);
+      } else {
+        this.currentChamberEntries = [{ key: c.key, value: c.value, expiresAt: c.expiresAt }];
+      }
+    } else {
+      document.getElementById('modal-kv-title').textContent = 'Nueva Cámara K/V (Redis DB)';
+      document.getElementById('chamber-name').value = '';
+      document.getElementById('chamber-id').value = '';
+      document.getElementById('chamber-desc').value = '';
+      this.currentChamberEntries = [
+        { key: 'session_usr_9981', value: { role: 'admin' }, ttlSeconds: 3600, expiresAt: new Date(Date.now() + 3600000).toISOString() },
+        { key: 'feature_flag_darkmode', value: true, expiresAt: null }
+      ];
+    }
+
+    this.renderAddedChamberEntriesList();
+    document.getElementById('modal-kv').classList.remove('hidden');
+  }
+
   closeKvModal() { document.getElementById('modal-kv').classList.add('hidden'); }
 
+  addChamberEntryToBuilder() {
+    const keyInput = document.getElementById('builder-entry-key');
+    const valInput = document.getElementById('builder-entry-val');
+    const ttlInput = document.getElementById('builder-entry-ttl');
+
+    const key = keyInput.value.trim();
+    const rawVal = valInput.value.trim();
+    const ttlSeconds = parseInt(ttlInput.value || '0', 10);
+
+    if (!key || !rawVal) {
+      this.toast('Clave y Valor son requeridos.');
+      return;
+    }
+
+    let value = rawVal;
+    try { value = JSON.parse(rawVal); } catch {}
+
+    const expiresAt = ttlSeconds > 0 ? new Date(Date.now() + ttlSeconds * 1000).toISOString() : null;
+
+    this.currentChamberEntries.push({ key, value, ttlSeconds, expiresAt });
+    keyInput.value = '';
+    valInput.value = '';
+    ttlInput.value = '';
+
+    this.renderAddedChamberEntriesList();
+    this.toast(`Clave '${key}' añadida a la cámara`);
+  }
+
+  removeChamberEntryFromBuilder(index) {
+    this.currentChamberEntries.splice(index, 1);
+    this.renderAddedChamberEntriesList();
+  }
+
+  renderAddedChamberEntriesList() {
+    const container = document.getElementById('chamber-added-entries-list');
+    container.innerHTML = '';
+
+    if (this.currentChamberEntries.length === 0) {
+      container.innerHTML = `<p style="color:var(--text-muted); font-size:0.8rem;">No hay claves añadidas aún.</p>`;
+      return;
+    }
+
+    this.currentChamberEntries.forEach((e, idx) => {
+      const isExp = e.expiresAt && new Date() > new Date(e.expiresAt);
+      const row = document.createElement('div');
+      row.className = 'added-group-row';
+      row.innerHTML = `
+        <div>
+          <strong>🔑 ${e.key}</strong>: <span style="color:var(--text-muted);">${JSON.stringify(e.value)}</span>
+          <span class="badge-tag" style="margin-left:6px; color:${isExp ? 'var(--danger)' : 'var(--accent)'}">
+            ${isExp ? 'EXPIRES' : (e.expiresAt ? 'TTL Active' : 'PERMANENT')}
+          </span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="consoleApp.removeChamberEntryFromBuilder(${idx})" type="button">🗑️</button>
+      `;
+      container.appendChild(row);
+    });
+  }
+
   saveKv() {
-    const key = document.getElementById('kv-key').value.trim();
-    const val = document.getElementById('kv-value').value.trim();
-    const ttl = parseInt(document.getElementById('kv-ttl').value || '0', 10);
+    const name = document.getElementById('chamber-name').value.trim();
+    const chamberId = document.getElementById('chamber-id').value.trim() || `chamber_${Date.now()}`;
+    const description = document.getElementById('chamber-desc').value.trim();
 
-    if (!key || !val) { this.toast('Clave y Valor son requeridos.'); return; }
+    if (!name) { this.toast('El nombre de la Cámara es requerido.'); return; }
 
-    const expiresAt = ttl > 0 ? new Date(Date.now() + ttl * 1000).toISOString() : null;
-    this.state.chambers[key] = { key, value: val, expiresAt };
+    const entriesObj = {};
+    this.currentChamberEntries.forEach(e => {
+      entriesObj[e.key] = e;
+    });
+
+    this.state.chambers[chamberId] = {
+      chamberId,
+      name,
+      description,
+      entries: entriesObj,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
 
     this.closeKvModal();
     this.renderAll();
-    this.toast(`Entrada K/V '${key}' guardada`);
+    this.toast(`Cámara K/V '${name}' guardada con ${Object.keys(entriesObj).length} claves`);
   }
 
-  delKv(key) { delete this.state.chambers[key]; this.renderAll(); this.toast(`Clave '${key}' eliminada`); }
+  editKv(id) { this.openKvModal(id); }
+  delKv(id) { delete this.state.chambers[id]; this.renderAll(); this.toast('Cámara K/V eliminada'); }
 
   openLogModal() { document.getElementById('modal-log').classList.remove('hidden'); }
   closeLogModal() { document.getElementById('modal-log').classList.add('hidden'); }
@@ -881,7 +1028,7 @@ class FormicaQueenConsole {
       return;
     }
 
-    delete this.state.chambers['temp_cache'];
+    delete this.state.chambers['chamber_global_cache'];
 
     this.simulatedAdapterGroups.forEach(a => {
       a.resourceGroups.forEach(rg => {
