@@ -22,123 +22,143 @@
         </div>
       </div>
       <div class="top-controls">
-        <div class="auth-input-group">
+        <div class="auth-input-group" id="auth-input-container">
           <input type="password" id="gh-token" placeholder="GitHub Personal Access Token (ghp_...)" autocomplete="off" data-lpignore="true" />
           <button id="btn-connect" class="btn btn-primary">Conectar Bóveda</button>
+        </div>
+        <div class="user-profile-group hidden" id="user-profile-container">
+          <span class="user-badge" id="user-display-name">👤 @cargando...</span>
+          <button id="btn-disconnect" class="btn btn-secondary btn-sm">🔒 Desconectar</button>
         </div>
       </div>
     </header>
 
-    <!-- Main Navigation Tabs -->
-    <nav class="nav-tabs">
-      <button class="tab-btn active" data-tab="tab-overview">📊 Vista General</button>
-      <button class="tab-btn" data-tab="tab-pheromones">🧪 Pheromones (Pub/Sub)</button>
-      <button class="tab-btn" data-tab="tab-chambers">🕳️ Chambers (K/V Store)</button>
-      <button class="tab-btn" data-tab="tab-foragers">🍃 Foragers (Telemetría)</button>
-      <button class="tab-btn" data-tab="tab-soldiers">🛡️ Soldiers (WAF Guard)</button>
-      <button class="tab-btn" data-tab="tab-legionarys">🌾 Legionarys (Purga Universal)</button>
-    </nav>
+    <!-- Login Gate (Shown when unauthenticated) -->
+    <section id="login-gate" class="login-gate-container">
+      <div class="login-gate-card glass-card">
+        <img src="assets/logo_formica.png" alt="Formica Logo" class="login-gate-logo" />
+        <h2>Acceso Protegido — Formica Queen Studio</h2>
+        <p>Ingresa tu GitHub Personal Access Token (PAT) para conectar la Bóveda B2B y gestionar las colonias de tu enjambre.</p>
+        <div class="login-input-stack">
+          <input type="password" id="gh-token-gate" placeholder="GitHub Personal Access Token (ghp_...)" autocomplete="off" data-lpignore="true" />
+          <button id="btn-connect-gate" class="btn btn-primary btn-lg">Conectar Bóveda</button>
+        </div>
+      </div>
+    </section>
 
-    <!-- Main Content Area -->
-    <main class="main-content">
-      <!-- 📊 TAB 1: OVERVIEW -->
-      <section id="tab-overview" class="tab-content active">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">🧪</div>
-            <div class="stat-info">
-              <div class="stat-label">Suscripciones Pub/Sub</div>
-              <div class="stat-value" id="stat-subs-count">0</div>
+    <!-- Protected Console Area (Shown when authenticated) -->
+    <div id="protected-console" class="hidden">
+      <!-- Main Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="tab-overview">📊 Vista General</button>
+        <button class="tab-btn" data-tab="tab-pheromones">🧪 Pheromones (Pub/Sub)</button>
+        <button class="tab-btn" data-tab="tab-chambers">🕳️ Chambers (K/V Store)</button>
+        <button class="tab-btn" data-tab="tab-foragers">🍃 Foragers (Telemetría)</button>
+        <button class="tab-btn" data-tab="tab-soldiers">🛡️ Soldiers (WAF Guard)</button>
+        <button class="tab-btn" data-tab="tab-legionarys">🌾 Legionarys (Purga Universal)</button>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- 📊 TAB 1: OVERVIEW -->
+        <section id="tab-overview" class="tab-content active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">🧪</div>
+              <div class="stat-info">
+                <div class="stat-label">Suscripciones Pub/Sub</div>
+                <div class="stat-value" id="stat-subs-count">0</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🕳️</div>
+              <div class="stat-info">
+                <div class="stat-label">Entradas K/V Chambers</div>
+                <div class="stat-value" id="stat-kv-count">0</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🍃</div>
+              <div class="stat-info">
+                <div class="stat-label">Registros Telemetría</div>
+                <div class="stat-value" id="stat-logs-count">0</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🌾</div>
+              <div class="stat-info">
+                <div class="stat-label">Adaptadores Purga</div>
+                <div class="stat-value" id="stat-adapters-count">0</div>
+              </div>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">🕳️</div>
-            <div class="stat-info">
-              <div class="stat-label">Entradas K/V Chambers</div>
-              <div class="stat-value" id="stat-kv-count">0</div>
+
+          <div class="hero-box glass-card">
+            <h2>🐜 Estado del Enjambre (The Formic Colony)</h2>
+            <p>Formica está operando como el sistema nervioso central autónomo de tu ecosistema. Conectado a Bóveda GitHub 100% inmutable a $0 de coste.</p>
+            <div class="status-indicator">
+              <span class="status-dot"></span> Bóveda Online y Sincronizada
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">🍃</div>
-            <div class="stat-info">
-              <div class="stat-label">Registros Telemetría</div>
-              <div class="stat-value" id="stat-logs-count">0</div>
+        </section>
+
+        <!-- 🧪 TAB 2: PHEROMONES -->
+        <section id="tab-pheromones" class="tab-content">
+          <div class="section-header">
+            <h2>🧪 Pheromones — Bus de Eventos Pub/Sub</h2>
+            <div class="action-buttons">
+              <button id="btn-new-sub" class="btn btn-accent">+ Nueva Suscripción</button>
+              <button id="btn-pub-event" class="btn btn-primary">🧪 Publicar Evento</button>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">🌾</div>
-            <div class="stat-info">
-              <div class="stat-label">Adaptadores Purga</div>
-              <div class="stat-value" id="stat-adapters-count">0</div>
+          <div class="cards-grid" id="subs-grid"></div>
+        </section>
+
+        <!-- 🕳️ TAB 3: CHAMBERS -->
+        <section id="tab-chambers" class="tab-content">
+          <div class="section-header">
+            <h2>🕳️ Chambers — Almacén K/V & Caché de Alta Velocidad</h2>
+            <button id="btn-new-kv" class="btn btn-accent">+ Nueva Entrada K/V</button>
+          </div>
+          <div class="cards-grid" id="kv-grid"></div>
+        </section>
+
+        <!-- 🍃 TAB 4: FORAGERS -->
+        <section id="tab-foragers" class="tab-content">
+          <div class="section-header">
+            <h2>🍃 Foragers — Telemetría & Registros de Logs</h2>
+            <button id="btn-new-log" class="btn btn-secondary">+ Enviar Log de Prueba</button>
+          </div>
+          <div class="logs-list glass-card" id="logs-list"></div>
+        </section>
+
+        <!-- 🛡️ TAB 5: SOLDIERS -->
+        <section id="tab-soldiers" class="tab-content">
+          <div class="section-header">
+            <h2>🛡️ Soldiers — WAF Guard & Gateway de Seguridad</h2>
+            <button id="btn-new-waf" class="btn btn-accent">+ Nueva Regla WAF</button>
+          </div>
+          <div class="cards-grid" id="waf-grid"></div>
+        </section>
+
+        <!-- 🌾 TAB 6: LEGIONARYS (UNIVERSAL PURGE ENGINE) -->
+        <section id="tab-legionarys" class="tab-content">
+          <div class="section-header">
+            <h2>🌾 Legionarys — Motor de Purga Universal & Garbage Collector</h2>
+            <div class="action-buttons">
+              <button id="btn-purge-dryrun" class="btn btn-secondary">🔍 Simular Purga (Dry-Run)</button>
+              <button id="btn-purge-execute" class="btn btn-danger">⚡ Ejecutar Purga Real</button>
             </div>
           </div>
-        </div>
 
-        <div class="hero-box glass-card">
-          <h2>🐜 Estado del Enjambre (The Formic Colony)</h2>
-          <p>Formica está operando como el sistema nervioso central autónomo de tu ecosistema. Conectado a Bóveda GitHub 100% inmutable a $0 de coste.</p>
-          <div class="status-indicator">
-            <span class="status-dot"></span> Bóveda Online y Sincronizada
+          <div id="purge-report-container" class="glass-card" style="margin-bottom: 24px;">
+            <h3>📊 Reporte de Simulación de Purga</h3>
+            <p id="purge-report-summary">Haz clic en 'Simular Purga' para calcular cuántos elementos caducados pueden eliminarse de Sinchlor, Rolla, Ballom, Lumina y Chambers.</p>
+            <div id="purge-report-items" class="purge-items-list"></div>
           </div>
-        </div>
-      </section>
-
-      <!-- 🧪 TAB 2: PHEROMONES -->
-      <section id="tab-pheromones" class="tab-content">
-        <div class="section-header">
-          <h2>🧪 Pheromones — Bus de Eventos Pub/Sub</h2>
-          <div class="action-buttons">
-            <button id="btn-new-sub" class="btn btn-accent">+ Nueva Suscripción</button>
-            <button id="btn-pub-event" class="btn btn-primary">🧪 Publicar Evento</button>
-          </div>
-        </div>
-        <div class="cards-grid" id="subs-grid"></div>
-      </section>
-
-      <!-- 🕳️ TAB 3: CHAMBERS -->
-      <section id="tab-chambers" class="tab-content">
-        <div class="section-header">
-          <h2>🕳️ Chambers — Almacén K/V & Caché de Alta Velocidad</h2>
-          <button id="btn-new-kv" class="btn btn-accent">+ Nueva Entrada K/V</button>
-        </div>
-        <div class="cards-grid" id="kv-grid"></div>
-      </section>
-
-      <!-- 🍃 TAB 4: FORAGERS -->
-      <section id="tab-foragers" class="tab-content">
-        <div class="section-header">
-          <h2>🍃 Foragers — Telemetría & Registros de Logs</h2>
-          <button id="btn-new-log" class="btn btn-secondary">+ Enviar Log de Prueba</button>
-        </div>
-        <div class="logs-list glass-card" id="logs-list"></div>
-      </section>
-
-      <!-- 🛡️ TAB 5: SOLDIERS -->
-      <section id="tab-soldiers" class="tab-content">
-        <div class="section-header">
-          <h2>🛡️ Soldiers — WAF Guard & Gateway de Seguridad</h2>
-          <button id="btn-new-waf" class="btn btn-accent">+ Nueva Regla WAF</button>
-        </div>
-        <div class="cards-grid" id="waf-grid"></div>
-      </section>
-
-      <!-- 🌾 TAB 6: LEGIONARYS (UNIVERSAL PURGE ENGINE) -->
-      <section id="tab-legionarys" class="tab-content">
-        <div class="section-header">
-          <h2>🌾 Legionarys — Motor de Purga Universal & Garbage Collector</h2>
-          <div class="action-buttons">
-            <button id="btn-purge-dryrun" class="btn btn-secondary">🔍 Simular Purga (Dry-Run)</button>
-            <button id="btn-purge-execute" class="btn btn-danger">⚡ Ejecutar Purga Real</button>
-          </div>
-        </div>
-
-        <div id="purge-report-container" class="glass-card" style="margin-bottom: 24px;">
-          <h3>📊 Reporte de Simulación de Purga</h3>
-          <p id="purge-report-summary">Haz clic en 'Simular Purga' para calcular cuántos elementos caducados pueden eliminarse de Sinchlor, Rolla, Ballom, Lumina y Chambers.</p>
-          <div id="purge-report-items" class="purge-items-list"></div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   </div>
 
   <!-- Modals -->
