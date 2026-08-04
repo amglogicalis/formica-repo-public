@@ -1,4 +1,4 @@
-// FORMICA Queen Studio — Web Console Application with Dynamic Resource Group Builder & Accordion Purge Simulation
+// FORMICA Queen Studio — Web Console Application with Refined WAF Soldiers & Priority Engine
 
 class FormicaQueenConsole {
   constructor() {
@@ -15,7 +15,7 @@ class FormicaQueenConsole {
     this.editingSubId = null;
     this.editingWafId = null;
     this.editingAdapterId = null;
-    this.currentAdapterGroups = []; // Dynamic group builder buffer
+    this.currentAdapterGroups = [];
     this.simulatedAdapterGroups = [];
 
     this.init();
@@ -190,7 +190,31 @@ class FormicaQueenConsole {
         { level: 'warn', source: 'Legionarys', message: 'Detected 3 expired items ready for purging', timestamp: new Date().toISOString() }
       ],
       soldierRules: {
-        'rule_1': { ruleId: 'rule_1', name: 'Rate Limiter High Frequency', action: 'block', ipPattern: '192.168.1.100', active: true }
+        'rule_whitelist': {
+          ruleId: 'rule_whitelist',
+          name: 'Whitelist Trusted Subnet',
+          targetApp: 'sinchlor-api',
+          pathPattern: '/api/v1/*',
+          priority: 1,
+          action: 'allow',
+          ipPattern: '10.0.0.',
+          active: true,
+          createdAt: new Date().toISOString()
+        },
+        'rule_block_scrapers': {
+          ruleId: 'rule_block_scrapers',
+          name: 'Block Malicious Scrapers',
+          targetApp: '*',
+          pathPattern: '*',
+          priority: 10,
+          action: 'custom_payload',
+          headerName: 'User-Agent',
+          headerValuePattern: 'sqlmap',
+          customStatusCode: 403,
+          customPayload: { error: 'Access Blocked by Formica WAF Guard', code: 'SCRAPER_BLOCKED_403' },
+          active: true,
+          createdAt: new Date().toISOString()
+        }
       },
       legionaryAdapters: {
         'adapter_prod': {
@@ -199,7 +223,7 @@ class FormicaQueenConsole {
           groups: [
             { groupName: 'Néctares Expirados Sinchlor', provider: 'sinchlor', filter: 'expired_only' },
             { groupName: 'Enlaces Larvae Caducados', provider: 'ballom', filter: 'ttl_expired' },
-            { groupName: 'MagicLinks Agotados', provider: 'lumina', filter: 'used_or_expired' }
+            { groupName: 'MagicLinks Agotados Lumina', provider: 'lumina', filter: 'used_or_expired' }
           ],
           active: true
         },
@@ -307,7 +331,10 @@ class FormicaQueenConsole {
   renderWaf() {
     const grid = document.getElementById('waf-grid');
     grid.innerHTML = '';
-    const rules = Object.values(this.state.soldierRules || {});
+    // Sort rules strictly by priority ascending (1 = highest priority)
+    const rules = Object.values(this.state.soldierRules || {})
+      .sort((a, b) => (a.priority || 50) - (b.priority || 50));
+
     if (rules.length === 0) {
       grid.innerHTML = `<p style="color:var(--text-muted);">No hay reglas WAF configuradas. Haz clic en '+ Nueva Regla WAF'.</p>`;
       return;
@@ -316,10 +343,25 @@ class FormicaQueenConsole {
     rules.forEach(r => {
       const card = document.createElement('div');
       card.className = 'resource-card';
+      const actionBadge = r.action === 'allow'
+        ? '<span class="badge-tag" style="background:rgba(16,185,129,0.2); color:#10b981; border-color:#10b981;">ALLOW</span>'
+        : r.action === 'custom_payload'
+        ? '<span class="badge-tag" style="background:rgba(167,139,250,0.2); color:var(--primary); border-color:var(--primary);">CUSTOM PAYLOAD</span>'
+        : '<span class="badge-tag" style="background:rgba(244,63,94,0.2); color:var(--danger); border-color:var(--danger);">' + r.action.toUpperCase() + '</span>';
+
       card.innerHTML = `
+        <span class="priority-badge">Prioridad #${r.priority || 10}</span>
         <div class="resource-card-title">${r.name}</div>
-        <div class="resource-card-sub">Acción: ${r.action.toUpperCase()}</div>
-        <div style="font-size:0.8rem; color:var(--text-muted);">${r.ipPattern ? 'IP: ' + r.ipPattern : 'Regla General'}</div>
+        <div style="margin-bottom:8px;">
+          ${actionBadge}
+          <span class="badge-tag" style="margin-left:4px;">App: ${r.targetApp || '*'}</span>
+        </div>
+        <div class="resource-card-sub" style="font-size:0.8rem;">
+          ${r.pathPattern ? 'Path: ' + r.pathPattern : 'Ruta: Global'}
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-muted);">
+          ${r.ipPattern ? 'IP: ' + r.ipPattern : (r.headerName ? 'Header: ' + r.headerName + ' ~ ' + r.headerValuePattern : 'Criterio General')}
+        </div>
         <div class="resource-card-actions">
           <button class="btn btn-secondary btn-sm" onclick="consoleApp.editWaf('${r.ruleId}')">✏️ Editar</button>
           <button class="btn btn-danger btn-sm" onclick="consoleApp.delWaf('${r.ruleId}')">🗑️ Eliminar</button>
@@ -361,7 +403,7 @@ class FormicaQueenConsole {
     });
   }
 
-  // --- MODAL HANDLERS & DYNAMIC RESOURCE GROUP BUILDER ---
+  // --- MODAL HANDLERS ---
   openSubModal(subId = null) {
     this.editingSubId = subId;
     if (subId) {
@@ -457,38 +499,93 @@ class FormicaQueenConsole {
     this.toast('Log de prueba enviado a Foragers');
   }
 
+  // Soldiers Refined WAF Modal Handler
   openWafModal(ruleId = null) {
     this.editingWafId = ruleId;
     if (ruleId) {
       const r = this.state.soldierRules[ruleId];
       document.getElementById('modal-waf-title').textContent = 'Editar Regla WAF';
       document.getElementById('waf-name').value = r.name;
+      document.getElementById('waf-target-app').value = r.targetApp || '*';
+      document.getElementById('waf-priority').value = r.priority || 10;
       document.getElementById('waf-action').value = r.action;
+      document.getElementById('waf-path').value = r.pathPattern || '*';
       document.getElementById('waf-ip').value = r.ipPattern || '';
+      document.getElementById('waf-header-name').value = r.headerName || '';
+      document.getElementById('waf-custom-status').value = r.customStatusCode || 403;
+      document.getElementById('waf-custom-payload-json').value = typeof r.customPayload === 'object'
+        ? JSON.stringify(r.customPayload, null, 2)
+        : (r.customPayload || '');
     } else {
       document.getElementById('modal-waf-title').textContent = 'Nueva Regla WAF';
       document.getElementById('waf-name').value = '';
+      document.getElementById('waf-target-app').value = '*';
+      document.getElementById('waf-priority').value = 10;
       document.getElementById('waf-action').value = 'block';
+      document.getElementById('waf-path').value = '*';
       document.getElementById('waf-ip').value = '';
+      document.getElementById('waf-header-name').value = '';
+      document.getElementById('waf-custom-status').value = 403;
+      document.getElementById('waf-custom-payload-json').value = '{\n  "error": "Access Denied by Formica WAF Guard",\n  "code": "CUSTOM_GUARD_403"\n}';
     }
+
+    this.toggleWafCustomPayloadField();
     document.getElementById('modal-waf').classList.remove('hidden');
+  }
+
+  toggleWafCustomPayloadField() {
+    const act = document.getElementById('waf-action').value;
+    const container = document.getElementById('waf-custom-payload-container');
+    if (act === 'custom_payload') {
+      container.classList.remove('hidden');
+    } else {
+      container.classList.add('hidden');
+    }
   }
 
   closeWafModal() { document.getElementById('modal-waf').classList.add('hidden'); }
 
   saveWaf() {
     const name = document.getElementById('waf-name').value.trim();
+    const targetApp = document.getElementById('waf-target-app').value.trim() || '*';
+    const priority = parseInt(document.getElementById('waf-priority').value || '10', 10);
     const action = document.getElementById('waf-action').value;
+    const pathPattern = document.getElementById('waf-path').value.trim();
     const ipPattern = document.getElementById('waf-ip').value.trim();
+    const headerName = document.getElementById('waf-header-name').value.trim();
+    const customStatus = parseInt(document.getElementById('waf-custom-status').value || '403', 10);
+    const rawPayload = document.getElementById('waf-custom-payload-json').value.trim();
 
     if (!name) { this.toast('El nombre de la regla es requerido.'); return; }
 
+    let customPayload = undefined;
+    if (action === 'custom_payload' && rawPayload) {
+      try {
+        customPayload = JSON.parse(rawPayload);
+      } catch {
+        customPayload = rawPayload;
+      }
+    }
+
     const id = this.editingWafId || `rule_${Date.now()}`;
-    this.state.soldierRules[id] = { ruleId: id, name, action, ipPattern: ipPattern || undefined, active: true };
+    this.state.soldierRules[id] = {
+      ruleId: id,
+      name,
+      targetApp,
+      priority,
+      action,
+      pathPattern: pathPattern || '*',
+      ipPattern: ipPattern || undefined,
+      headerName: headerName || undefined,
+      customStatusCode: customStatus,
+      customPayload,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
 
     this.closeWafModal();
     this.renderAll();
-    this.toast('Regla WAF guardada correctamente');
+    this.toast('Regla WAF guardada y ordenada por prioridad');
   }
 
   editWaf(id) { this.openWafModal(id); }
@@ -596,7 +693,6 @@ class FormicaQueenConsole {
 
   // --- ACCORDION PURGE SIMULATION BY ADAPTER & NAMED RESOURCE GROUPS ---
   runPurgeDryRun() {
-    // Generate simulation results organized by registered Adapters and their Resource Groups
     this.simulatedAdapterGroups = [
       {
         adapterId: 'adapter_prod',
@@ -666,7 +762,6 @@ class FormicaQueenConsole {
       card.className = 'purge-accordion-card';
       card.id = `accordion-card-${aIdx}`;
 
-      // Calculate total items & bytes in this adapter
       let adapterTotalItems = 0;
       let adapterSelectedItems = 0;
       let adapterBytes = 0;
@@ -788,12 +883,10 @@ class FormicaQueenConsole {
 
     delete this.state.chambers['temp_cache'];
 
-    // Filter out purged items
     this.simulatedAdapterGroups.forEach(a => {
       a.resourceGroups.forEach(rg => {
         rg.items = rg.items.filter(i => !i.selected);
       });
-      rg = rg.resourceGroups?.filter(rg => rg.items.length > 0);
     });
 
     this.renderAll();

@@ -112,6 +112,11 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
 .resource-card-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; font-family: 'JetBrains Mono', monospace; }
 .resource-card-actions { display: flex; gap: 8px; margin-top: 14px; }
 
+.priority-badge {
+  font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.2);
+  color: var(--accent); border: 1px solid var(--accent); font-weight: 700; float: right;
+}
+
 .btn {
   padding: 8px 16px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;
@@ -189,6 +194,12 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
   border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 0.9rem; outline: none;
 }
 .form-select option { background: #0f0a1c; color: #fff; }
+
+.form-textarea {
+  width: 100%; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; outline: none; resize: vertical;
+}
+.form-textarea:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
 
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px);

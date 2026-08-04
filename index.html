@@ -135,7 +135,7 @@
         <!-- 🛡️ TAB 5: SOLDIERS -->
         <section id="tab-soldiers" class="tab-content">
           <div class="section-header">
-            <h2>🛡️ Soldiers — WAF Guard & Gateway de Seguridad</h2>
+            <h2>🛡️ Soldiers — WAF Guard, Prioridades & Gateway de Seguridad</h2>
             <button id="btn-new-waf" class="btn btn-accent">+ Nueva Regla WAF</button>
           </div>
           <div class="cards-grid" id="waf-grid"></div>
@@ -273,26 +273,63 @@
     </div>
   </div>
 
-  <!-- Modal 5: Soldiers WAF Rule -->
+  <!-- Modal 5: Soldiers Refined WAF Rule with Target App, Priority & Custom Payload -->
   <div id="modal-waf" class="modal-backdrop hidden">
-    <div class="modal-box glass-card">
+    <div class="modal-box glass-card" style="max-width: 560px;">
       <h3 id="modal-waf-title">Nueva Regla WAF (Soldiers)</h3>
+      
       <div class="form-group">
         <label>Nombre de la Regla:</label>
         <input type="text" id="waf-name" placeholder="Bloqueo de Subred Maliciosa" />
       </div>
-      <div class="form-group">
-        <label>Acción:</label>
-        <select id="waf-action" class="form-select">
-          <option value="block">Bloquear (Block)</option>
-          <option value="allow">Permitir (Allow)</option>
-          <option value="rate_limit">Limitar Tasa (Rate Limit)</option>
-        </select>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;" class="form-group">
+        <div>
+          <label>Aplicación Web / Dominio Objetivo (`targetApp`):</label>
+          <input type="text" id="waf-target-app" placeholder="sinchlor-api, api.myterra.org o *" />
+        </div>
+        <div>
+          <label>Prioridad (1 = Máxima):</label>
+          <input type="number" id="waf-priority" value="10" min="1" max="100" />
+        </div>
       </div>
-      <div class="form-group">
-        <label>Patrón de IP (Opcional):</label>
-        <input type="text" id="waf-ip" placeholder="192.168.100." />
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+        <div>
+          <label>Acción WAF:</label>
+          <select id="waf-action" class="form-select" onchange="consoleApp.toggleWafCustomPayloadField()">
+            <option value="allow">✅ Permitir (Allow - Whitelist)</option>
+            <option value="block">🚫 Bloquear (Block - Blacklist)</option>
+            <option value="rate_limit">⏱️ Limitar Tasa (Rate Limit)</option>
+            <option value="custom_payload">⚙️ Custom Payload / Plantilla JSON</option>
+          </select>
+        </div>
+        <div>
+          <label>Patrón de Ruta (`pathPattern`):</label>
+          <input type="text" id="waf-path" placeholder="/api/v1/admin/* o *" />
+        </div>
       </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+        <div>
+          <label>Patrón de IP (Opcional):</label>
+          <input type="text" id="waf-ip" placeholder="192.168.100." />
+        </div>
+        <div>
+          <label>Cabecera HTTP Filtro (Opcional):</label>
+          <input type="text" id="waf-header-name" placeholder="User-Agent" />
+        </div>
+      </div>
+
+      <!-- Custom Payload Response Section (Shown if action == 'custom_payload') -->
+      <div id="waf-custom-payload-container" class="form-group hidden" style="background: rgba(0,0,0,0.4); padding: 14px; border-radius: 8px; border: 1px dashed var(--primary);">
+        <label>Código HTTP Status Response:</label>
+        <input type="number" id="waf-custom-status" value="403" style="width: 120px; margin-bottom: 10px;" />
+
+        <label>Plantilla Payload JSON / Texto Customizado:</label>
+        <textarea id="waf-custom-payload-json" rows="3" class="form-textarea" placeholder='{ "error": "Access Denied by Custom Formica Guard", "code": "CUSTOM_GUARD_403" }'></textarea>
+      </div>
+
       <div class="modal-actions">
         <button id="btn-waf-cancel" class="btn btn-secondary">Cancelar</button>
         <button id="btn-waf-save" class="btn btn-primary">Guardar Regla</button>
