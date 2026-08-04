@@ -290,7 +290,7 @@
         </div>
         <div>
           <label>Prioridad (1 = Máxima):</label>
-          <input type="number" id="waf-priority" value="10" min="1" max="100" />
+          <input type="number" id="waf-priority" placeholder="10" min="1" max="100" />
         </div>
       </div>
 
@@ -324,10 +324,10 @@
       <!-- Custom Payload Response Section (Shown if action == 'custom_payload') -->
       <div id="waf-custom-payload-container" class="form-group hidden" style="background: rgba(0,0,0,0.4); padding: 14px; border-radius: 8px; border: 1px dashed var(--primary);">
         <label>Código HTTP Status Response:</label>
-        <input type="number" id="waf-custom-status" value="403" style="width: 120px; margin-bottom: 10px;" />
+        <input type="number" id="waf-custom-status" placeholder="403" style="width: 120px; margin-bottom: 10px;" />
 
         <label>Plantilla Payload JSON / Texto Customizado:</label>
-        <textarea id="waf-custom-payload-json" rows="3" class="form-textarea" placeholder='{ "error": "Access Denied by Custom Formica Guard", "code": "CUSTOM_GUARD_403" }'></textarea>
+        <textarea id="waf-custom-payload-json" rows="3" class="form-textarea" placeholder='{\n  "error": "Acceso denegado por Formica WAF Guard",\n  "code": "CUSTOM_GUARD_403"\n}'></textarea>
       </div>
 
       <div class="modal-actions">
