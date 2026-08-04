@@ -33,7 +33,7 @@
       </div>
     </header>
 
-    <!-- Login Gate (Shown when unauthenticated) -->
+    <!-- Login Gate (Shown ONLY when unauthenticated) -->
     <section id="login-gate" class="login-gate-container">
       <div class="login-gate-card glass-card">
         <img src="assets/logo_formica.png" alt="Formica Logo" class="login-gate-logo" />
@@ -46,7 +46,7 @@
       </div>
     </section>
 
-    <!-- Protected Console Area (Shown when authenticated) -->
+    <!-- Protected Console Area (Shown ONLY when authenticated) -->
     <div id="protected-console" class="hidden">
       <!-- Main Navigation Tabs -->
       <nav class="nav-tabs">
@@ -127,7 +127,7 @@
         <section id="tab-foragers" class="tab-content">
           <div class="section-header">
             <h2>🍃 Foragers — Telemetría & Registros de Logs</h2>
-            <button id="btn-new-log" class="btn btn-secondary">+ Enviar Log de Prueba</button>
+            <button id="btn-new-log" class="btn btn-accent">+ Enviar Log de Prueba</button>
           </div>
           <div class="logs-list glass-card" id="logs-list"></div>
         </section>
@@ -146,14 +146,24 @@
           <div class="section-header">
             <h2>🌾 Legionarys — Motor de Purga Universal & Garbage Collector</h2>
             <div class="action-buttons">
+              <button id="btn-new-adapter" class="btn btn-accent">+ Nuevo Adaptador de Purga</button>
               <button id="btn-purge-dryrun" class="btn btn-secondary">🔍 Simular Purga (Dry-Run)</button>
-              <button id="btn-purge-execute" class="btn btn-danger">⚡ Ejecutar Purga Real</button>
+              <button id="btn-purge-execute" class="btn btn-danger">⚡ Ejecutar Purga Seleccionada</button>
             </div>
           </div>
 
-          <div id="purge-report-container" class="glass-card" style="margin-bottom: 24px;">
-            <h3>📊 Reporte de Simulación de Purga</h3>
-            <p id="purge-report-summary">Haz clic en 'Simular Purga' para calcular cuántos elementos caducados pueden eliminarse de Sinchlor, Rolla, Ballom, Lumina y Chambers.</p>
+          <!-- Section 1: Registered Purge Adapters -->
+          <div style="margin-bottom: 32px;">
+            <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: var(--primary);">⚙️ Adaptadores de Purga Programados</h3>
+            <div class="cards-grid" id="adapters-grid"></div>
+          </div>
+
+          <!-- Section 2: Interactive Selective Purge Report -->
+          <div id="purge-report-container" class="glass-card">
+            <h3 style="margin-bottom: 8px;">📊 Reporte de Simulación de Purga & Seleccionador</h3>
+            <p id="purge-report-summary" style="margin-bottom: 16px; color: var(--text-muted);">
+              Haz clic en 'Simular Purga' para detectar elementos expirados. Podrás marcar o desmarcar exactamente qué elementos deseas eliminar antes de ejecutar la purga.
+            </p>
             <div id="purge-report-items" class="purge-items-list"></div>
           </div>
         </section>
@@ -161,7 +171,7 @@
     </div>
   </div>
 
-  <!-- Modals -->
+  <!-- MODALS SYSTEM -->
   <!-- Modal 1: Pub/Sub Subscription -->
   <div id="modal-sub" class="modal-backdrop hidden">
     <div class="modal-box glass-card">
@@ -227,6 +237,96 @@
       <div class="modal-actions">
         <button id="btn-kv-cancel" class="btn btn-secondary">Cancelar</button>
         <button id="btn-kv-save" class="btn btn-primary">Guardar K/V</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Foragers Send Test Log -->
+  <div id="modal-log" class="modal-backdrop hidden">
+    <div class="modal-box glass-card">
+      <h3>🍃 Enviar Log de Prueba (Foragers)</h3>
+      <div class="form-group">
+        <label>Nivel de Criticidad:</label>
+        <select id="log-level-select" class="form-select">
+          <option value="info">INFO</option>
+          <option value="warn">WARN</option>
+          <option value="error">ERROR</option>
+          <option value="debug">DEBUG</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Origen / Servicio Emisor:</label>
+        <input type="text" id="log-source" placeholder="Auth-Gateway" />
+      </div>
+      <div class="form-group">
+        <label>Mensaje de Log:</label>
+        <input type="text" id="log-message" placeholder="Petición procesada correctamente" />
+      </div>
+      <div class="form-group">
+        <label>Correlation ID (Opcional):</label>
+        <input type="text" id="log-correlation" placeholder="corr_9981" />
+      </div>
+      <div class="modal-actions">
+        <button id="btn-log-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-log-save" class="btn btn-primary">Enviar Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Soldiers WAF Rule -->
+  <div id="modal-waf" class="modal-backdrop hidden">
+    <div class="modal-box glass-card">
+      <h3 id="modal-waf-title">Nueva Regla WAF (Soldiers)</h3>
+      <div class="form-group">
+        <label>Nombre de la Regla:</label>
+        <input type="text" id="waf-name" placeholder="Bloqueo de Subred Maliciosa" />
+      </div>
+      <div class="form-group">
+        <label>Acción:</label>
+        <select id="waf-action" class="form-select">
+          <option value="block">Bloquear (Block)</option>
+          <option value="allow">Permitir (Allow)</option>
+          <option value="rate_limit">Limitar Tasa (Rate Limit)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Patrón de IP (Opcional):</label>
+        <input type="text" id="waf-ip" placeholder="192.168.100." />
+      </div>
+      <div class="modal-actions">
+        <button id="btn-waf-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-waf-save" class="btn btn-primary">Guardar Regla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 6: Legionarys Purge Adapter -->
+  <div id="modal-adapter" class="modal-backdrop hidden">
+    <div class="modal-box glass-card">
+      <h3 id="modal-adapter-title">Nuevo Adaptador de Purga (Legionarys)</h3>
+      <div class="form-group">
+        <label>Nombre del Adaptador:</label>
+        <input type="text" id="adapter-name" placeholder="Purga de Néctares Sinchlor" />
+      </div>
+      <div class="form-group">
+        <label>Proveedor / Aplicación Objetivo:</label>
+        <select id="adapter-provider" class="form-select">
+          <option value="sinchlor">Sinchlor (Secretos Efímeros)</option>
+          <option value="ballom">Ballom (Enlaces Larvae)</option>
+          <option value="lumina">Lumina (MagicLinks)</option>
+          <option value="rolla">Rolla (Balls Obsoletas)</option>
+          <option value="chambers">Chambers (K/V Expirado)</option>
+          <option value="aws">AWS (S3/Cloud Resources)</option>
+          <option value="custom_webhook">Webhook Customizado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Target Endpoint / Webhook (Opcional):</label>
+        <input type="text" id="adapter-endpoint" placeholder="https://api.myterra.org/purge-hook" />
+      </div>
+      <div class="modal-actions">
+        <button id="btn-adapter-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-adapter-save" class="btn btn-primary">Guardar Adaptador</button>
       </div>
     </div>
   </div>

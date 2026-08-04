@@ -16,6 +16,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
 body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
+/* CRITICAL DISPLAY FIX */
 .hidden { display: none !important; }
 
 .top-bar {
@@ -46,14 +47,14 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
   display: flex; justify-content: center; align-items: center; min-height: 75vh; padding: 24px;
 }
 .login-gate-card {
-  max-width: 480px; width: 100%; text-align: center; border-left: 4px solid var(--primary); padding: 36px 28px;
+  max-width: 500px; width: 100%; text-align: center; border-left: 4px solid var(--primary); padding: 36px 28px;
 }
-.login-gate-logo { width: 80px; height: 80px; margin-bottom: 20px; filter: drop-shadow(0 0 16px var(--primary-glow)); }
+.login-gate-logo { width: 100px; height: 100px; object-fit: contain; margin-bottom: 20px; filter: drop-shadow(0 0 16px var(--primary-glow)); }
 .login-gate-card h2 { font-size: 1.4rem; margin-bottom: 10px; color: #fff; }
 .login-gate-card p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
 .login-input-stack { display: flex; flex-direction: column; gap: 12px; }
 .login-input-stack input {
-  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border); border-radius: 8px;
   padding: 12px 16px; color: #fff; font-size: 0.95rem; text-align: center; outline: none;
 }
 .login-input-stack input:focus { border-color: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
@@ -98,6 +99,7 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
 
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .section-header h2 { font-size: 1.2rem; font-weight: 600; }
+.action-buttons { display: flex; gap: 10px; }
 
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
 
@@ -126,26 +128,44 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
 .btn-danger:hover { background: #e11d48; }
 
 .logs-list { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; max-height: 400px; overflow-y: auto; }
-.log-row { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; gap: 12px; }
+.log-row { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; gap: 12px; }
 .log-level { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
 .log-level.info { background: rgba(167, 139, 250, 0.2); color: var(--primary); }
 .log-level.warn { background: rgba(245, 158, 11, 0.2); color: var(--accent); }
 .log-level.error { background: rgba(244, 63, 94, 0.2); color: var(--danger); }
+.log-level.debug { background: rgba(148, 163, 184, 0.2); color: var(--text-muted); }
+
+/* PURGE ITEM ROW WITH CHECKBOX */
+.purge-item-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.9rem;
+}
+.purge-item-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+.purge-item-badge {
+  font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px;
+  background: var(--primary-deep); color: var(--primary); border: 1px solid var(--primary);
+}
+
+.form-select {
+  width: 100%; background: rgba(15, 10, 28, 0.9); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 0.9rem; outline: none;
+}
+.form-select option { background: #0f0a1c; color: #fff; }
 
 .modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 1; transition: opacity 0.2s;
 }
 .modal-backdrop.hidden { opacity: 0; pointer-events: none; }
 .modal-box { width: 100%; max-width: 480px; }
-.modal-box h3 { margin-bottom: 18px; font-size: 1.1rem; }
+.modal-box h3 { margin-bottom: 18px; font-size: 1.1rem; color: #fff; }
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
 .form-group input {
   width: 100%; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border);
   border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 0.9rem; outline: none;
 }
-.form-group input:focus { border-color: var(--primary); }
+.form-group input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
 .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 2000; }
