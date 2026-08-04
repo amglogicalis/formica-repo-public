@@ -146,23 +146,23 @@
           <div class="section-header">
             <h2>🌾 Legionarys — Motor de Purga Universal & Garbage Collector</h2>
             <div class="action-buttons">
-              <button id="btn-new-adapter" class="btn btn-accent">+ Nuevo Adaptador Multi-Objetivo</button>
+              <button id="btn-new-adapter" class="btn btn-accent">+ Nuevo Adaptador de Purga</button>
               <button id="btn-purge-dryrun" class="btn btn-secondary">🔍 Simular Purga (Dry-Run)</button>
               <button id="btn-purge-execute" class="btn btn-danger">⚡ Ejecutar Purga Seleccionada</button>
             </div>
           </div>
 
-          <!-- Section 1: Registered Purge Adapters -->
+          <!-- Section 1: Registered Purge Adapters with Groups -->
           <div style="margin-bottom: 32px;">
-            <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: var(--primary);">⚙️ Adaptadores de Purga Programados</h3>
+            <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: var(--primary);">⚙️ Adaptadores de Purga & Grupos de Recursos Programados</h3>
             <div class="cards-grid" id="adapters-grid"></div>
           </div>
 
-          <!-- Section 2: Interactive Selective Purge Report grouped by Accordion Adapters -->
+          <!-- Section 2: Interactive Selective Purge Report grouped by Accordion Adapters & Resource Groups -->
           <div id="purge-report-container" class="glass-card">
-            <h3 style="margin-bottom: 8px;">📊 Reporte de Simulación de Purga & Seleccionador por Adaptador</h3>
+            <h3 style="margin-bottom: 8px;">📊 Reporte de Simulación de Purga por Adaptadores & Grupos de Recursos</h3>
             <p id="purge-report-summary" style="margin-bottom: 20px; color: var(--text-muted);">
-              Haz clic en 'Simular Purga' para detectar recursos caducados. Cada adaptador se mostrará como un panel desplegable donde podrás seleccionar o deseleccionar elementos individuales o adaptadores completos.
+              Haz clic en 'Simular Purga' para detectar recursos caducados. Cada adaptador se desplegará organizado por sus Grupos de Recursos específicos con casilleros individuales.
             </p>
             <div id="purge-report-items" class="purge-accordion-container"></div>
           </div>
@@ -300,40 +300,50 @@
     </div>
   </div>
 
-  <!-- Modal 6: Legionarys Purge Adapter Multi-Target -->
+  <!-- Modal 6: Legionarys Purge Adapter with Dynamic Resource Groups Builder -->
   <div id="modal-adapter" class="modal-backdrop hidden">
-    <div class="modal-box glass-card" style="max-width: 540px;">
-      <h3 id="modal-adapter-title">Adaptador de Purga Programado (Multi-Objetivo)</h3>
-      <div class="form-group">
-        <label>Nombre del Adaptador:</label>
-        <input type="text" id="adapter-name" placeholder="Adaptador Global de Limpieza Terra" />
-      </div>
+    <div class="modal-box glass-card" style="max-width: 580px;">
+      <h3 id="modal-adapter-title">Adaptador de Purga (Añadidor Dinámico de Grupos)</h3>
       
       <div class="form-group">
-        <label>Objetivos a Incluir en este Adaptador (Selección Múltiple):</label>
-        <div class="multi-select-grid">
-          <label class="checkbox-pill">
-            <input type="checkbox" value="sinchlor" class="adapter-prov-chk" checked /> 🛡️ Sinchlor (Néctares)
-          </label>
-          <label class="checkbox-pill">
-            <input type="checkbox" value="ballom" class="adapter-prov-chk" checked /> 🎭 Ballom (Larvae)
-          </label>
-          <label class="checkbox-pill">
-            <input type="checkbox" value="lumina" class="adapter-prov-chk" checked /> 🔐 Lumina (MagicLinks)
-          </label>
-          <label class="checkbox-pill">
-            <input type="checkbox" value="rolla" class="adapter-prov-chk" checked /> 🗄️ Rolla (Balls)
-          </label>
-          <label class="checkbox-pill">
-            <input type="checkbox" value="chambers" class="adapter-prov-chk" checked /> 🕳️ Chambers (K/V)
-          </label>
-          <label class="checkbox-pill">
-            <input type="checkbox" value="aws" class="adapter-prov-chk" /> ☁️ AWS S3 / Cloud
-          </label>
-          <label class="checkbox-pill">
-            <input type="checkbox" value="custom_webhook" class="adapter-prov-chk" /> 🌐 Custom Webhook
-          </label>
+        <label>Nombre del Adaptador:</label>
+        <input type="text" id="adapter-name" placeholder="Limpiador Bóvedas Producción" />
+      </div>
+
+      <!-- Dynamic Resource Group Builder Sub-Form -->
+      <div class="group-builder-card">
+        <h4>➕ Añadir Grupo / Recurso Específico a Destruir</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Nombre del Grupo:</label>
+            <input type="text" id="builder-group-name" placeholder="Néctares Expirados" />
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Tipo / Proveedor:</label>
+            <select id="builder-group-provider" class="form-select">
+              <option value="sinchlor">🛡️ Sinchlor (Néctares)</option>
+              <option value="ballom">🎭 Ballom (Larvae)</option>
+              <option value="lumina">🔐 Lumina (MagicLinks)</option>
+              <option value="rolla">🗄️ Rolla (Balls Obsoletas)</option>
+              <option value="chambers">🕳️ Chambers (K/V Expirado)</option>
+              <option value="aws">☁️ AWS S3 / Cloud</option>
+              <option value="custom_webhook">🌐 Custom Webhook</option>
+            </select>
+          </div>
         </div>
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+          <div style="flex:1;">
+            <label style="font-size:0.75rem; color:var(--text-muted);">Filtro / Condición (Opcional):</label>
+            <input type="text" id="builder-group-filter" placeholder="expired_only, prod_* o *" />
+          </div>
+          <button id="btn-add-resource-group" class="btn btn-accent btn-sm" type="button" style="height: 38px;">+ Añadir Grupo</button>
+        </div>
+      </div>
+
+      <!-- Added Groups Container List -->
+      <div class="form-group" style="margin-top: 16px;">
+        <label>Grupos de Recursos Configurados en este Adaptador:</label>
+        <div id="adapter-added-groups-list" class="added-groups-list"></div>
       </div>
 
       <div class="form-group">

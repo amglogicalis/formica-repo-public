@@ -135,17 +135,20 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
 .log-level.error { background: rgba(244, 63, 94, 0.2); color: var(--danger); }
 .log-level.debug { background: rgba(148, 163, 184, 0.2); color: var(--text-muted); }
 
-/* MULTI-SELECT CHECKBOX PILLS */
-.multi-select-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 8px;
+/* DYNAMIC GROUP BUILDER IN MODAL */
+.group-builder-card {
+  background: rgba(15, 10, 28, 0.6); border: 1px dashed var(--primary);
+  border-radius: 10px; padding: 16px; margin-top: 10px;
 }
-.checkbox-pill {
-  display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px;
-  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); cursor: pointer;
-  font-size: 0.85rem; color: #fff; transition: all 0.2s ease; user-select: none;
+.group-builder-card h4 { font-size: 0.9rem; color: var(--primary); margin-bottom: 12px; }
+
+.added-groups-list {
+  display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 160px; overflow-y: auto;
 }
-.checkbox-pill:hover { border-color: var(--primary); background: var(--bg-card); }
-.checkbox-pill input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px; }
+.added-group-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 8px 12px;
+  background: var(--primary-deep); border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;
+}
 
 /* PURGE ACCORDION COLLAPSIBLE CARDS */
 .purge-accordion-container { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
@@ -163,10 +166,16 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
 .purge-accordion-card.collapsed .purge-accordion-chevron { transform: rotate(-90deg); }
 .purge-accordion-card.collapsed .purge-accordion-body { display: none; }
 
-.purge-accordion-body { padding: 12px 20px; background: rgba(0, 0, 0, 0.2); }
+.purge-accordion-body { padding: 16px 20px; background: rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 16px; }
+
+.purge-group-box {
+  background: rgba(47, 37, 79, 0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px;
+}
+.purge-group-title { font-weight: 700; font-size: 0.88rem; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
 .purge-item-row {
-  display: flex; align-items: center; gap: 12px; padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.88rem;
+  display: flex; align-items: center; gap: 12px; padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem;
 }
 .purge-item-row:last-child { border-bottom: none; }
 .purge-item-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
@@ -186,7 +195,7 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
   display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 1; transition: opacity 0.2s;
 }
 .modal-backdrop.hidden { opacity: 0; pointer-events: none; }
-.modal-box { width: 100%; max-width: 520px; }
+.modal-box { width: 100%; max-width: 580px; }
 .modal-box h3 { margin-bottom: 18px; font-size: 1.1rem; color: #fff; }
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
