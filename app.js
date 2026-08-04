@@ -526,10 +526,7 @@ class FormicaQueenConsole {
       document.getElementById('chamber-name').value = '';
       document.getElementById('chamber-id').value = '';
       document.getElementById('chamber-desc').value = '';
-      this.currentChamberEntries = [
-        { key: 'session_usr_9981', value: { role: 'admin' }, ttlSeconds: 3600, expiresAt: new Date(Date.now() + 3600000).toISOString() },
-        { key: 'feature_flag_darkmode', value: true, expiresAt: null }
-      ];
+      this.currentChamberEntries = [];
     }
 
     this.renderAddedChamberEntriesList();
@@ -571,6 +568,26 @@ class FormicaQueenConsole {
     this.renderAddedChamberEntriesList();
   }
 
+  editChamberEntryInBuilder(index) {
+    const entry = this.currentChamberEntries[index];
+    if (!entry) return;
+
+    // Load entry values into the builder inputs
+    document.getElementById('builder-entry-key').value = entry.key;
+    document.getElementById('builder-entry-val').value = typeof entry.value === 'object'
+      ? JSON.stringify(entry.value)
+      : String(entry.value);
+    document.getElementById('builder-entry-ttl').value = entry.ttlSeconds || 0;
+
+    // Remove it from list so user re-adds with modified values
+    this.currentChamberEntries.splice(index, 1);
+    this.renderAddedChamberEntriesList();
+
+    // Focus on key field
+    document.getElementById('builder-entry-key').focus();
+    this.toast(`Clave '${entry.key}' cargada en el editor. Modifícala y pulsa '+ Añadir Clave'.`);
+  }
+
   renderAddedChamberEntriesList() {
     const container = document.getElementById('chamber-added-entries-list');
     container.innerHTML = '';
@@ -585,13 +602,16 @@ class FormicaQueenConsole {
       const row = document.createElement('div');
       row.className = 'added-group-row';
       row.innerHTML = `
-        <div>
-          <strong>🔑 ${e.key}</strong>: <span style="color:var(--text-muted);">${JSON.stringify(e.value)}</span>
+        <div style="flex:1; min-width:0;">
+          <strong>🔑 ${e.key}</strong>: <span style="color:var(--text-muted); font-size:0.8rem;">${JSON.stringify(e.value)}</span>
           <span class="badge-tag" style="margin-left:6px; color:${isExp ? 'var(--danger)' : 'var(--accent)'}">
-            ${isExp ? 'EXPIRES' : (e.expiresAt ? 'TTL Active' : 'PERMANENT')}
+            ${isExp ? '⚠️ EXPIRADO' : (e.expiresAt ? '⏱️ TTL Active' : '♾️ PERMANENT')}
           </span>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="consoleApp.removeChamberEntryFromBuilder(${idx})" type="button">🗑️</button>
+        <div style="display:flex; gap:4px; flex-shrink:0;">
+          <button class="btn btn-secondary btn-sm" onclick="consoleApp.editChamberEntryInBuilder(${idx})" type="button">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="consoleApp.removeChamberEntryFromBuilder(${idx})" type="button">🗑️</button>
+        </div>
       `;
       container.appendChild(row);
     });
