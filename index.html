@@ -327,7 +327,10 @@
         <input type="number" id="waf-custom-status" placeholder="403" style="width: 120px; margin-bottom: 10px;" />
 
         <label>Plantilla Payload JSON / Texto Customizado:</label>
-        <textarea id="waf-custom-payload-json" rows="3" class="form-textarea" placeholder='{\n  "error": "Acceso denegado por Formica WAF Guard",\n  "code": "CUSTOM_GUARD_403"\n}'></textarea>
+        <textarea id="waf-custom-payload-json" rows="3" class="form-textarea" placeholder='{
+  "error": "Acceso denegado por Formica WAF Guard",
+  "code": "CUSTOM_GUARD_403"
+}'></textarea>
       </div>
 
       <div class="modal-actions">
