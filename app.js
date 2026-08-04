@@ -558,6 +558,7 @@ class FormicaQueenConsole {
     this.renderAddedChamberEntriesList();
   }
 
+
   renderAddedChamberEntriesList() {
     const container = document.getElementById('chamber-added-entries-list');
     container.innerHTML = '';
@@ -574,27 +575,43 @@ class FormicaQueenConsole {
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'margin-bottom:6px;';
 
-      // Main row
+      // Main row — two-line layout to avoid horizontal squeeze
       const row = document.createElement('div');
       row.className = 'added-group-row';
-      row.style.cssText = isEditing ? 'border-bottom-left-radius:0; border-bottom-right-radius:0; border-bottom: 1px solid var(--primary);' : '';
-      row.innerHTML = `
-        <div style="flex:1; min-width:0; overflow:hidden;">
-          <strong>🔑 ${e.key}</strong>
-          <span style="color:var(--text-muted); font-size:0.78rem; margin-left:6px;">${JSON.stringify(e.value)}</span>
-          <span class="badge-tag" style="margin-left:6px; color:${isExp ? 'var(--danger)' : 'var(--accent)'}">
-            ${isExp ? '⚠️ EXPIRADO' : (e.expiresAt ? '⏱️ TTL' : '♾️ PERMANENTE')}
-          </span>
-        </div>
+      row.style.cssText = `
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        ${isEditing ? 'border-bottom-left-radius:0; border-bottom-right-radius:0; border-bottom: 1px solid var(--primary);' : ''}
+      `;
+
+      // Line 1: key name + TTL badge + action buttons
+      const line1 = document.createElement('div');
+      line1.style.cssText = 'display:flex; align-items:center; gap:6px;';
+      line1.innerHTML = `
+        <strong style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">🔑 ${e.key}</strong>
+        <span class="badge-tag" style="flex-shrink:0; color:${isExp ? 'var(--danger)' : 'var(--accent)'}; border-color:${isExp ? 'var(--danger)' : 'var(--accent)'}">
+          ${isExp ? '⚠️ EXPIRADO' : (e.expiresAt ? '⏱️ TTL' : '♾️')}
+        </span>
         <div style="display:flex; gap:4px; flex-shrink:0;">
           <button class="btn btn-secondary btn-sm" onclick="consoleApp.openEntryInlineEdit(${idx})" type="button">
-            ${isEditing ? '✖ Cerrar' : '✏️'}
+            ${isEditing ? '✖' : '✏️'}
           </button>
           <button class="btn btn-danger btn-sm" onclick="consoleApp.removeChamberEntryFromBuilder(${idx})" type="button">🗑️</button>
         </div>`;
+
+      // Line 2: value preview, truncated with ellipsis
+      const line2 = document.createElement('div');
+      const rawPreview = typeof e.value === 'object' ? JSON.stringify(e.value) : String(e.value);
+      line2.style.cssText = 'font-size:0.77rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:monospace; padding: 0 2px;';
+      line2.title = rawPreview; // full value on hover
+      line2.textContent = rawPreview;
+
+      row.appendChild(line1);
+      row.appendChild(line2);
       wrapper.appendChild(row);
 
-      // Inline edit panel
+      // Inline edit panel — values set via .value to avoid HTML quoting issues
       if (isEditing) {
         const panel = document.createElement('div');
         panel.style.cssText = `
@@ -604,31 +621,46 @@ class FormicaQueenConsole {
           border-radius: 0 0 8px 8px;
           padding: 12px;
         `;
+
+        // Build the panel HTML structure (no value attributes — set via JS below)
         panel.innerHTML = `
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
             <div>
               <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Clave (Key):</label>
-              <input type="text" id="inline-key-${idx}" value="${e.key}" style="width:100%; box-sizing:border-box;" />
+              <input type="text" id="inline-key-${idx}" style="width:100%; box-sizing:border-box;" />
             </div>
             <div>
               <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Valor (Value / JSON):</label>
-              <input type="text" id="inline-val-${idx}" value="${typeof e.value === 'object' ? JSON.stringify(e.value) : e.value}" style="width:100%; box-sizing:border-box;" />
+              <input type="text" id="inline-val-${idx}" style="width:100%; box-sizing:border-box;" />
             </div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-end;">
             <div style="flex:1;">
               <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">TTL en Segundos (0 = Permanente):</label>
-              <input type="number" id="inline-ttl-${idx}" value="${e.ttlSeconds || 0}" style="width:100%; box-sizing:border-box;" />
+              <input type="number" id="inline-ttl-${idx}" style="width:100%; box-sizing:border-box;" />
             </div>
-            <button class="btn btn-primary btn-sm" onclick="consoleApp.saveEntryInlineEdit(${idx})" type="button" style="height:38px; padding: 0 16px;">💾 Guardar</button>
+            <button class="btn btn-primary btn-sm" onclick="consoleApp.saveEntryInlineEdit(${idx})" type="button" style="height:38px; padding:0 16px;">💾 Guardar</button>
             <button class="btn btn-secondary btn-sm" onclick="consoleApp.openEntryInlineEdit(${idx})" type="button" style="height:38px;">✖ Cerrar</button>
           </div>`;
+
         wrapper.appendChild(panel);
+
+        // Set input values safely via JS (avoids JSON quote escaping issues in HTML attributes)
+        requestAnimationFrame(() => {
+          const keyInput = document.getElementById(`inline-key-${idx}`);
+          const valInput = document.getElementById(`inline-val-${idx}`);
+          const ttlInput = document.getElementById(`inline-ttl-${idx}`);
+          if (keyInput) keyInput.value = e.key;
+          if (valInput) valInput.value = typeof e.value === 'object' ? JSON.stringify(e.value, null, 2) : String(e.value);
+          if (ttlInput) ttlInput.value = e.ttlSeconds || 0;
+        });
       }
 
       container.appendChild(wrapper);
     });
   }
+
+
 
   saveKv() {
     const name = document.getElementById('chamber-name').value.trim();
