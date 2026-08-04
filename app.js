@@ -1,4 +1,4 @@
-// FORMICA Queen Studio — Web Console Application with Full Modals & Selective Purging
+// FORMICA Queen Studio — Web Console Application with Multi-Target Adapters & Collapsible Accordion Purge Simulation
 
 class FormicaQueenConsole {
   constructor() {
@@ -15,7 +15,7 @@ class FormicaQueenConsole {
     this.editingSubId = null;
     this.editingWafId = null;
     this.editingAdapterId = null;
-    this.simulatedPurgeItems = [];
+    this.simulatedAdapterGroups = [];
 
     this.init();
   }
@@ -191,9 +191,8 @@ class FormicaQueenConsole {
         'rule_1': { ruleId: 'rule_1', name: 'Rate Limiter High Frequency', action: 'block', ipPattern: '192.168.1.100', active: true }
       },
       legionaryAdapters: {
-        'adapter_sinchlor': { adapterId: 'adapter_sinchlor', name: 'Sinchlor Ephemeral Nectars', provider: 'sinchlor', active: true },
-        'adapter_ballom': { adapterId: 'adapter_ballom', name: 'Ballom Larvae Shortlinks', provider: 'ballom', active: true },
-        'adapter_lumina': { adapterId: 'adapter_lumina', name: 'Lumina MagicLinks', provider: 'lumina', active: true }
+        'adapter_global': { adapterId: 'adapter_global', name: 'Limpiador Bóvedas Terra', providers: ['sinchlor', 'ballom', 'lumina'], active: true },
+        'adapter_cache': { adapterId: 'adapter_cache', name: 'Limpiador Caché & Storage', providers: ['rolla', 'chambers'], active: true }
       }
     };
   }
@@ -317,18 +316,23 @@ class FormicaQueenConsole {
     grid.innerHTML = '';
     const adapters = Object.values(this.state.legionaryAdapters || {});
     if (adapters.length === 0) {
-      grid.innerHTML = `<p style="color:var(--text-muted);">No hay adaptadores de purga programados. Haz clic en '+ Nuevo Adaptador de Purga'.</p>`;
+      grid.innerHTML = `<p style="color:var(--text-muted);">No hay adaptadores de purga programados. Haz clic en '+ Nuevo Adaptador Multi-Objetivo'.</p>`;
       return;
     }
 
     adapters.forEach(a => {
       const card = document.createElement('div');
       card.className = 'resource-card';
+      const provBadges = (a.providers || [a.provider || 'all'])
+        .map(p => `<span class="badge-tag" style="margin-right:4px;">${p.toUpperCase()}</span>`)
+        .join('');
+
       card.innerHTML = `
         <div class="resource-card-title">${a.name}</div>
-        <div class="resource-card-sub">Proveedor: ${a.provider.toUpperCase()}</div>
+        <div style="margin-bottom: 12px;">${provBadges}</div>
         <div style="font-size:0.8rem; color:var(--text-muted);">${a.targetEndpoint ? 'Target: ' + a.targetEndpoint : 'Integrado Out-of-the-Box'}</div>
         <div class="resource-card-actions">
+          <button class="btn btn-secondary btn-sm" onclick="consoleApp.editAdapter('${a.adapterId}')">✏️ Editar</button>
           <button class="btn btn-danger btn-sm" onclick="consoleApp.delAdapter('${a.adapterId}')">🗑️ Eliminar</button>
         </div>
       `;
@@ -337,7 +341,6 @@ class FormicaQueenConsole {
   }
 
   // --- MODAL HANDLERS ---
-  // Subscriptions
   openSubModal(subId = null) {
     this.editingSubId = subId;
     if (subId) {
@@ -374,7 +377,6 @@ class FormicaQueenConsole {
   editSub(id) { this.openSubModal(id); }
   delSub(id) { delete this.state.subscriptions[id]; this.renderAll(); this.toast('Suscripción eliminada'); }
 
-  // Publish Event
   openEventModal() { document.getElementById('modal-event').classList.remove('hidden'); }
   closeEventModal() { document.getElementById('modal-event').classList.add('hidden'); }
 
@@ -394,7 +396,6 @@ class FormicaQueenConsole {
     this.toast(`Evento publicado en el tópico '${topic}'`);
   }
 
-  // K/V Chambers
   openKvModal() { document.getElementById('modal-kv').classList.remove('hidden'); }
   closeKvModal() { document.getElementById('modal-kv').classList.add('hidden'); }
 
@@ -415,7 +416,6 @@ class FormicaQueenConsole {
 
   delKv(key) { delete this.state.chambers[key]; this.renderAll(); this.toast(`Clave '${key}' eliminada`); }
 
-  // Foragers Logs
   openLogModal() { document.getElementById('modal-log').classList.remove('hidden'); }
   closeLogModal() { document.getElementById('modal-log').classList.add('hidden'); }
 
@@ -436,7 +436,6 @@ class FormicaQueenConsole {
     this.toast('Log de prueba enviado a Foragers');
   }
 
-  // Soldiers WAF Rules
   openWafModal(ruleId = null) {
     this.editingWafId = ruleId;
     if (ruleId) {
@@ -474,10 +473,27 @@ class FormicaQueenConsole {
   editWaf(id) { this.openWafModal(id); }
   delWaf(id) { delete this.state.soldierRules[id]; this.renderAll(); this.toast('Regla WAF eliminada'); }
 
-  // Legionarys Adapters
-  openAdapterModal() {
-    document.getElementById('adapter-name').value = '';
-    document.getElementById('adapter-endpoint').value = '';
+  // Legionarys Adapters (Multi-Target Editing)
+  openAdapterModal(adapterId = null) {
+    this.editingAdapterId = adapterId;
+    const chks = document.querySelectorAll('.adapter-prov-chk');
+
+    if (adapterId) {
+      const a = this.state.legionaryAdapters[adapterId];
+      document.getElementById('modal-adapter-title').textContent = 'Editar Adaptador de Purga';
+      document.getElementById('adapter-name').value = a.name;
+      document.getElementById('adapter-endpoint').value = a.targetEndpoint || '';
+
+      const provs = a.providers || [a.provider];
+      chks.forEach(chk => {
+        chk.checked = provs.includes(chk.value);
+      });
+    } else {
+      document.getElementById('modal-adapter-title').textContent = 'Adaptador de Purga Programado (Multi-Objetivo)';
+      document.getElementById('adapter-name').value = '';
+      document.getElementById('adapter-endpoint').value = '';
+      chks.forEach(chk => { chk.checked = ['sinchlor', 'ballom', 'lumina'].includes(chk.value); });
+    }
     document.getElementById('modal-adapter').classList.remove('hidden');
   }
 
@@ -485,91 +501,178 @@ class FormicaQueenConsole {
 
   saveAdapter() {
     const name = document.getElementById('adapter-name').value.trim();
-    const provider = document.getElementById('adapter-provider').value;
     const endpoint = document.getElementById('adapter-endpoint').value.trim();
+    const selectedProvs = Array.from(document.querySelectorAll('.adapter-prov-chk:checked')).map(c => c.value);
 
     if (!name) { this.toast('El nombre del adaptador es requerido.'); return; }
+    if (selectedProvs.length === 0) { this.toast('Selecciona al menos un objetivo para el adaptador.'); return; }
 
-    const id = `adapter_${Date.now()}`;
-    this.state.legionaryAdapters[id] = { adapterId: id, name, provider, targetEndpoint: endpoint || undefined, active: true };
+    const id = this.editingAdapterId || `adapter_${Date.now()}`;
+    this.state.legionaryAdapters[id] = {
+      adapterId: id,
+      name,
+      providers: selectedProvs,
+      targetEndpoint: endpoint || undefined,
+      active: true
+    };
 
     this.closeAdapterModal();
     this.renderAll();
-    this.toast('Adaptador de purga registrado correctamente');
+    this.toast('Adaptador de purga guardado correctamente');
   }
 
+  editAdapter(id) { this.openAdapterModal(id); }
   delAdapter(id) { delete this.state.legionaryAdapters[id]; this.renderAll(); this.toast('Adaptador eliminado'); }
 
-  // --- SELECTIVE PURGE SIMULATION & EXECUTION ---
+  // --- ACCORDION PURGE SIMULATION & SELECTIVE PURGING ---
   runPurgeDryRun() {
-    this.simulatedPurgeItems = [
-      { id: 'item_1', provider: 'SINCHLOR', desc: 'Néctar efímero \'prod_db_temp\' (Expirado por TTL = 0 / Uso)', bytes: 2048, selected: true },
-      { id: 'item_2', provider: 'BALLOM', desc: 'Enlace corto Larvae \'tmp-promo\' (Caducado hace 24h)', bytes: 1024, selected: true },
-      { id: 'item_3', provider: 'LUMINA', desc: 'LanternLink MagicLink \'usr_9981\' (Agotado)', bytes: 1024, selected: true },
-      { id: 'item_4', provider: 'CHAMBERS', desc: 'Entrada K/V \'temp_cache\' (Expirada)', bytes: 512, selected: true }
+    // Generate simulated purge groups mapped to registered adapters
+    const adapters = Object.values(this.state.legionaryAdapters || {});
+
+    this.simulatedAdapterGroups = [
+      {
+        adapterId: 'adapter_global',
+        adapterName: 'Limpiador Bóvedas Terra',
+        items: [
+          { id: 'item_1', provider: 'SINCHLOR', desc: 'Néctar efímero \'prod_db_temp\' (Expirado por TTL = 0 / Uso)', bytes: 2048, selected: true },
+          { id: 'item_2', provider: 'BALLOM', desc: 'Enlace corto Larvae \'tmp-promo\' (Caducado hace 24h)', bytes: 1024, selected: true },
+          { id: 'item_3', provider: 'LUMINA', desc: 'LanternLink MagicLink \'usr_9981\' (Agotado)', bytes: 1024, selected: true }
+        ]
+      },
+      {
+        adapterId: 'adapter_cache',
+        adapterName: 'Limpiador Caché & Storage',
+        items: [
+          { id: 'item_4', provider: 'CHAMBERS', desc: 'Entrada K/V \'temp_cache\' (Expirada por TTL)', bytes: 512, selected: true },
+          { id: 'item_5', provider: 'ROLLA', desc: 'Rolla-Ball \'old_assets_v1\' (Obsoleta/Expirada)', bytes: 10485760, selected: true }
+        ]
+      }
     ];
 
     this.renderPurgeReport();
-    this.toast('Simulación Dry-Run ejecutada. Selecciona los elementos a purgar.');
+    this.toast('Simulación Dry-Run ejecutada. Despliega cada adaptador para configurar.');
   }
 
   renderPurgeReport() {
     const listContainer = document.getElementById('purge-report-items');
     listContainer.innerHTML = '';
 
-    if (this.simulatedPurgeItems.length === 0) {
+    if (this.simulatedAdapterGroups.length === 0) {
       listContainer.innerHTML = `<p style="color:var(--primary);">✔ Limpieza completada. No hay recursos expirados detectados.</p>`;
-      document.getElementById('purge-report-summary').innerHTML = 'Haz clic en \'Simular Purga\' para detectar elementos expirados.';
+      document.getElementById('purge-report-summary').innerHTML = 'Haz clic en \'Simular Purga\' para detectar recursos caducados.';
       return;
     }
 
-    this.simulatedPurgeItems.forEach((item, index) => {
-      const row = document.createElement('div');
-      row.className = 'purge-item-row';
-      row.innerHTML = `
-        <input type="checkbox" id="purge-chk-${index}" ${item.selected ? 'checked' : ''} onchange="consoleApp.togglePurgeItem(${index})" />
-        <span class="purge-item-badge">${item.provider}</span>
-        <span style="flex:1;">${item.desc}</span>
-        <span style="color:var(--primary); font-family:monospace; font-weight:600;">+${item.bytes} B</span>
+    this.simulatedAdapterGroups.forEach((group, gIdx) => {
+      const card = document.createElement('div');
+      card.className = 'purge-accordion-card';
+      card.id = `accordion-card-${gIdx}`;
+
+      const selectedInGroup = group.items.filter(i => i.selected).length;
+      const allSelected = selectedInGroup === group.items.length;
+      const groupBytes = group.items.filter(i => i.selected).reduce((s, i) => s + i.bytes, 0);
+
+      card.innerHTML = `
+        <div class="purge-accordion-header" onclick="consoleApp.toggleAccordion(${gIdx}, event)">
+          <input type="checkbox" id="master-chk-${gIdx}" ${allSelected ? 'checked' : ''} onclick="event.stopPropagation(); consoleApp.toggleMasterAdapter(${gIdx})" />
+          <div class="purge-accordion-title">⚙️ ${group.adapterName}</div>
+          <div class="purge-accordion-meta">${selectedInGroup}/${group.items.length} ítems (${groupBytes.toLocaleString()} B)</div>
+          <span class="purge-accordion-chevron">▼</span>
+        </div>
+        <div class="purge-accordion-body">
+          ${group.items.map((item, iIdx) => `
+            <div class="purge-item-row">
+              <input type="checkbox" id="chk-${gIdx}-${iIdx}" ${item.selected ? 'checked' : ''} onchange="consoleApp.togglePurgeItem(${gIdx}, ${iIdx})" />
+              <span class="purge-item-badge">${item.provider}</span>
+              <span style="flex:1;">${item.desc}</span>
+              <span style="color:var(--primary); font-family:monospace; font-weight:600;">+${item.bytes.toLocaleString()} B</span>
+            </div>
+          `).join('')}
+        </div>
       `;
-      listContainer.appendChild(row);
+      listContainer.appendChild(card);
     });
 
     this.updatePurgeSummary();
   }
 
-  togglePurgeItem(index) {
-    if (this.simulatedPurgeItems[index]) {
-      this.simulatedPurgeItems[index].selected = !this.simulatedPurgeItems[index].selected;
-      this.updatePurgeSummary();
+  toggleAccordion(gIdx, event) {
+    if (event.target.tagName === 'INPUT') return;
+    const card = document.getElementById(`accordion-card-${gIdx}`);
+    if (card) card.classList.toggle('collapsed');
+  }
+
+  toggleMasterAdapter(gIdx) {
+    const group = this.simulatedAdapterGroups[gIdx];
+    if (!group) return;
+
+    const masterChk = document.getElementById(`master-chk-${gIdx}`);
+    const isChecked = masterChk ? masterChk.checked : false;
+
+    group.items.forEach(item => { item.selected = isChecked; });
+    this.renderPurgeReport();
+  }
+
+  togglePurgeItem(gIdx, iIdx) {
+    const item = this.simulatedAdapterGroups[gIdx]?.items[iIdx];
+    if (item) {
+      item.selected = !item.selected;
+      this.renderPurgeReport();
     }
   }
 
   updatePurgeSummary() {
-    const selectedItems = this.simulatedPurgeItems.filter(i => i.selected);
-    const totalBytes = selectedItems.reduce((sum, i) => sum + i.bytes, 0);
+    let totalSelected = 0;
+    let totalItems = 0;
+    let totalBytes = 0;
+
+    this.simulatedAdapterGroups.forEach(g => {
+      g.items.forEach(i => {
+        totalItems++;
+        if (i.selected) {
+          totalSelected++;
+          totalBytes += i.bytes;
+        }
+      });
+    });
 
     document.getElementById('purge-report-summary').innerHTML = `
       <strong style="color:var(--primary);">Simulación Activa:</strong> Seleccionados
-      <span style="color:var(--accent); font-weight:700;">${selectedItems.length} de ${this.simulatedPurgeItems.length} elementos</span>
-      para purgar (Total: <span style="color:var(--primary); font-weight:700;">${totalBytes.toLocaleString()} bytes</span> a liberar).
+      <span style="color:var(--accent); font-weight:700;">${totalSelected} de ${totalItems} elementos</span>
+      en <span style="color:var(--primary); font-weight:700;">${this.simulatedAdapterGroups.length} adaptadores</span>
+      (Total: <span style="color:var(--primary); font-weight:700;">${totalBytes.toLocaleString()} bytes</span> a liberar).
     `;
   }
 
   executeSelectedPurge() {
-    const selectedItems = this.simulatedPurgeItems.filter(i => i.selected);
-    if (selectedItems.length === 0) {
+    let selectedCount = 0;
+    let bytesFreed = 0;
+
+    this.simulatedAdapterGroups.forEach(g => {
+      g.items.forEach(i => {
+        if (i.selected) {
+          selectedCount++;
+          bytesFreed += i.bytes;
+        }
+      });
+    });
+
+    if (selectedCount === 0) {
       this.toast('Marca al menos un elemento para ejecutar la purga.');
       return;
     }
 
     delete this.state.chambers['temp_cache'];
-    const bytesFreed = selectedItems.reduce((sum, i) => sum + i.bytes, 0);
-    this.simulatedPurgeItems = this.simulatedPurgeItems.filter(i => !i.selected);
+
+    // Filter out purged items
+    this.simulatedAdapterGroups.forEach(g => {
+      g.items = g.items.filter(i => !i.selected);
+    });
+    this.simulatedAdapterGroups = this.simulatedAdapterGroups.filter(g => g.items.length > 0);
 
     this.renderAll();
     this.renderPurgeReport();
-    this.toast(`⚡ Purga ejecutada con éxito! Se liberaron ${bytesFreed} bytes.`);
+    this.toast(`⚡ Purga ejecutada con éxito! Se liberaron ${bytesFreed.toLocaleString()} bytes.`);
   }
 
   toast(msg) {
