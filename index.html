@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FORMICA Queen Studio — The Formic Mesh Dashboard ($0 Cost)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Header Navigation -->
+    <header class="top-bar">
+      <div class="brand">
+        <div class="brand-logo">🐜</div>
+        <div class="brand-text">
+          <h1>FORMICA <span class="badge-tag">Queen Studio</span></h1>
+          <p>The Formic Mesh • Event Mesh, K/V Cache & Universal Purging ($0 Cost)</p>
+        </div>
+      </div>
+      <div class="top-controls">
+        <div class="auth-input-group">
+          <input type="password" id="gh-token" placeholder="GitHub Personal Access Token (ghp_...)" autocomplete="off" data-lpignore="true" />
+          <button id="btn-connect" class="btn btn-primary">Conectar Bóveda</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-overview">📊 Vista General</button>
+      <button class="tab-btn" data-tab="tab-pheromones">🧪 Pheromones (Pub/Sub)</button>
+      <button class="tab-btn" data-tab="tab-chambers">🕳️ Chambers (K/V Store)</button>
+      <button class="tab-btn" data-tab="tab-foragers">🍃 Foragers (Telemetría)</button>
+      <button class="tab-btn" data-tab="tab-soldiers">🛡️ Soldiers (WAF Guard)</button>
+      <button class="tab-btn" data-tab="tab-legionarys">🌾 Legionarys (Purga Universal)</button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- 📊 TAB 1: OVERVIEW -->
+      <section id="tab-overview" class="tab-content active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🧪</div>
+            <div class="stat-info">
+              <div class="stat-label">Suscripciones Pub/Sub</div>
+              <div class="stat-value" id="stat-subs-count">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🕳️</div>
+            <div class="stat-info">
+              <div class="stat-label">Entradas K/V Chambers</div>
+              <div class="stat-value" id="stat-kv-count">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🍃</div>
+            <div class="stat-info">
+              <div class="stat-label">Registros Telemetría</div>
+              <div class="stat-value" id="stat-logs-count">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🌾</div>
+            <div class="stat-info">
+              <div class="stat-label">Adaptadores Purga</div>
+              <div class="stat-value" id="stat-adapters-count">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-box glass-card">
+          <h2>🐜 Estado del Enjambre (The Formic Colony)</h2>
+          <p>Formica está operando como el sistema nervioso central autónomo de tu ecosistema. Conectado a Bóveda GitHub 100% inmutable a $0 de coste.</p>
+          <div class="status-indicator">
+            <span class="status-dot"></span> Bóveda Online y Sincronizada
+          </div>
+        </div>
+      </section>
+
+      <!-- 🧪 TAB 2: PHEROMONES -->
+      <section id="tab-pheromones" class="tab-content">
+        <div class="section-header">
+          <h2>🧪 Pheromones — Bus de Eventos Pub/Sub</h2>
+          <div class="action-buttons">
+            <button id="btn-new-sub" class="btn btn-accent">+ Nueva Suscripción</button>
+            <button id="btn-pub-event" class="btn btn-primary">🧪 Publicar Evento</button>
+          </div>
+        </div>
+        <div class="cards-grid" id="subs-grid"></div>
+      </section>
+
+      <!-- 🕳️ TAB 3: CHAMBERS -->
+      <section id="tab-chambers" class="tab-content">
+        <div class="section-header">
+          <h2>🕳️ Chambers — Almacén K/V & Caché de Alta Velocidad</h2>
+          <button id="btn-new-kv" class="btn btn-accent">+ Nueva Entrada K/V</button>
+        </div>
+        <div class="cards-grid" id="kv-grid"></div>
+      </section>
+
+      <!-- 🍃 TAB 4: FORAGERS -->
+      <section id="tab-foragers" class="tab-content">
+        <div class="section-header">
+          <h2>🍃 Foragers — Telemetría & Registros de Logs</h2>
+          <button id="btn-new-log" class="btn btn-secondary">+ Enviar Log de Prueba</button>
+        </div>
+        <div class="logs-list glass-card" id="logs-list"></div>
+      </section>
+
+      <!-- 🛡️ TAB 5: SOLDIERS -->
+      <section id="tab-soldiers" class="tab-content">
+        <div class="section-header">
+          <h2>🛡️ Soldiers — WAF Guard & Gateway de Seguridad</h2>
+          <button id="btn-new-waf" class="btn btn-accent">+ Nueva Regla WAF</button>
+        </div>
+        <div class="cards-grid" id="waf-grid"></div>
+      </section>
+
+      <!-- 🌾 TAB 6: LEGIONARYS (UNIVERSAL PURGE ENGINE) -->
+      <section id="tab-legionarys" class="tab-content">
+        <div class="section-header">
+          <h2>🌾 Legionarys — Motor de Purga Universal & Garbage Collector</h2>
+          <div class="action-buttons">
+            <button id="btn-purge-dryrun" class="btn btn-secondary">🔍 Simular Purga (Dry-Run)</button>
+            <button id="btn-purge-execute" class="btn btn-danger">⚡ Ejecutar Purga Real</button>
+          </div>
+        </div>
+
+        <div id="purge-report-container" class="glass-card" style="margin-bottom: 24px;">
+          <h3>📊 Reporte de Simulación de Purga</h3>
+          <p id="purge-report-summary">Haz clic en 'Simular Purga' para calcular cuántos elementos caducados pueden eliminarse de Sinchlor, Rolla, Ballom, Lumina y Chambers.</p>
+          <div id="purge-report-items" class="purge-items-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <!-- Modal 1: Pub/Sub Subscription -->
+  <div id="modal-sub" class="modal-backdrop hidden">
+    <div class="modal-box glass-card">
+      <h3 id="modal-sub-title">Nueva Suscripción Pub/Sub</h3>
+      <div class="form-group">
+        <label>Tópico (p. ej. 'user.created', 'secret.triggered', '*'):</label>
+        <input type="text" id="sub-topic" placeholder="user.created" />
+      </div>
+      <div class="form-group">
+        <label>Nombre del Suscriptor / App:</label>
+        <input type="text" id="sub-name" placeholder="Sinchlor-Notifier" />
+      </div>
+      <div class="form-group">
+        <label>Webhook Target URL (Opcional):</label>
+        <input type="text" id="sub-webhook" placeholder="https://api.myapp.com/webhook" />
+      </div>
+      <div class="modal-actions">
+        <button id="btn-sub-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-sub-save" class="btn btn-primary">Guardar Suscripción</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Publish Event -->
+  <div id="modal-event" class="modal-backdrop hidden">
+    <div class="modal-box glass-card">
+      <h3>Publicar Evento Pheromones</h3>
+      <div class="form-group">
+        <label>Tópico:</label>
+        <input type="text" id="event-topic" placeholder="secret.triggered" />
+      </div>
+      <div class="form-group">
+        <label>Emisor (Sender):</label>
+        <input type="text" id="event-sender" placeholder="Sinchlor-Honeytrap" />
+      </div>
+      <div class="form-group">
+        <label>Mensaje / Payload (Texto):</label>
+        <input type="text" id="event-msg" placeholder="Intento de acceso en trampas decoy" />
+      </div>
+      <div class="modal-actions">
+        <button id="btn-event-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-event-pub" class="btn btn-primary">Enviar Evento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Chamber K/V -->
+  <div id="modal-kv" class="modal-backdrop hidden">
+    <div class="modal-box glass-card">
+      <h3>Nueva Entrada K/V Chambers</h3>
+      <div class="form-group">
+        <label>Clave (Key):</label>
+        <input type="text" id="kv-key" placeholder="session_token_123" />
+      </div>
+      <div class="form-group">
+        <label>Valor (Value):</label>
+        <input type="text" id="kv-value" placeholder="active_authenticated" />
+      </div>
+      <div class="form-group">
+        <label>TTL en Segundos (0 = Permanente):</label>
+        <input type="number" id="kv-ttl" value="0" />
+      </div>
+      <div class="modal-actions">
+        <button id="btn-kv-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btn-kv-save" class="btn btn-primary">Guardar K/V</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
