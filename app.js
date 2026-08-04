@@ -1,4 +1,4 @@
-// FORMICA Queen Studio — Web Console Application with Refined WAF Soldiers & Priority Engine
+// FORMICA Queen Studio — Web Console Application with Refined WAF Soldiers & Placeholders
 
 class FormicaQueenConsole {
   constructor() {
@@ -192,7 +192,7 @@ class FormicaQueenConsole {
       soldierRules: {
         'rule_whitelist': {
           ruleId: 'rule_whitelist',
-          name: 'Whitelist Trusted Subnet',
+          name: 'Whitelist Subred Confiable',
           targetApp: 'sinchlor-api',
           pathPattern: '/api/v1/*',
           priority: 1,
@@ -203,7 +203,7 @@ class FormicaQueenConsole {
         },
         'rule_block_scrapers': {
           ruleId: 'rule_block_scrapers',
-          name: 'Block Malicious Scrapers',
+          name: 'Bloqueo Scrapers SQLmap',
           targetApp: '*',
           pathPattern: '*',
           priority: 10,
@@ -211,7 +211,7 @@ class FormicaQueenConsole {
           headerName: 'User-Agent',
           headerValuePattern: 'sqlmap',
           customStatusCode: 403,
-          customPayload: { error: 'Access Blocked by Formica WAF Guard', code: 'SCRAPER_BLOCKED_403' },
+          customPayload: { error: 'Acceso denegado por Formica WAF Guard', code: 'CUSTOM_GUARD_403' },
           active: true,
           createdAt: new Date().toISOString()
         }
@@ -331,7 +331,7 @@ class FormicaQueenConsole {
   renderWaf() {
     const grid = document.getElementById('waf-grid');
     grid.innerHTML = '';
-    // Sort rules strictly by priority ascending (1 = highest priority)
+
     const rules = Object.values(this.state.soldierRules || {})
       .sort((a, b) => (a.priority || 50) - (b.priority || 50));
 
@@ -499,34 +499,34 @@ class FormicaQueenConsole {
     this.toast('Log de prueba enviado a Foragers');
   }
 
-  // Soldiers Refined WAF Modal Handler
+  // Soldiers Refined WAF Modal Handler with Clean Placeholders
   openWafModal(ruleId = null) {
     this.editingWafId = ruleId;
     if (ruleId) {
       const r = this.state.soldierRules[ruleId];
       document.getElementById('modal-waf-title').textContent = 'Editar Regla WAF';
       document.getElementById('waf-name').value = r.name;
-      document.getElementById('waf-target-app').value = r.targetApp || '*';
-      document.getElementById('waf-priority').value = r.priority || 10;
+      document.getElementById('waf-target-app').value = r.targetApp || '';
+      document.getElementById('waf-priority').value = r.priority || '';
       document.getElementById('waf-action').value = r.action;
-      document.getElementById('waf-path').value = r.pathPattern || '*';
+      document.getElementById('waf-path').value = r.pathPattern || '';
       document.getElementById('waf-ip').value = r.ipPattern || '';
       document.getElementById('waf-header-name').value = r.headerName || '';
-      document.getElementById('waf-custom-status').value = r.customStatusCode || 403;
+      document.getElementById('waf-custom-status').value = r.customStatusCode || '';
       document.getElementById('waf-custom-payload-json').value = typeof r.customPayload === 'object'
         ? JSON.stringify(r.customPayload, null, 2)
         : (r.customPayload || '');
     } else {
       document.getElementById('modal-waf-title').textContent = 'Nueva Regla WAF';
       document.getElementById('waf-name').value = '';
-      document.getElementById('waf-target-app').value = '*';
-      document.getElementById('waf-priority').value = 10;
+      document.getElementById('waf-target-app').value = '';
+      document.getElementById('waf-priority').value = '';
       document.getElementById('waf-action').value = 'block';
-      document.getElementById('waf-path').value = '*';
+      document.getElementById('waf-path').value = '';
       document.getElementById('waf-ip').value = '';
       document.getElementById('waf-header-name').value = '';
-      document.getElementById('waf-custom-status').value = 403;
-      document.getElementById('waf-custom-payload-json').value = '{\n  "error": "Access Denied by Formica WAF Guard",\n  "code": "CUSTOM_GUARD_403"\n}';
+      document.getElementById('waf-custom-status').value = '';
+      document.getElementById('waf-custom-payload-json').value = '';
     }
 
     this.toggleWafCustomPayloadField();
