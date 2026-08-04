@@ -16,6 +16,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
 body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
+.hidden { display: none !important; }
+
 .top-bar {
   display: flex; justify-content: space-between; align-items: center;
   padding: 18px 32px; background: rgba(15, 10, 28, 0.85); backdrop-filter: blur(12px);
@@ -33,6 +35,28 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
   padding: 8px 14px; color: #fff; font-size: 0.85rem; width: 280px; outline: none;
 }
 .auth-input-group input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+
+.user-profile-group { display: flex; align-items: center; gap: 12px; }
+.user-badge {
+  background: var(--primary-deep); color: #fff; padding: 6px 14px; border-radius: 20px;
+  font-size: 0.85rem; font-weight: 600; border: 1px solid var(--primary); box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.login-gate-container {
+  display: flex; justify-content: center; align-items: center; min-height: 75vh; padding: 24px;
+}
+.login-gate-card {
+  max-width: 480px; width: 100%; text-align: center; border-left: 4px solid var(--primary); padding: 36px 28px;
+}
+.login-gate-logo { width: 80px; height: 80px; margin-bottom: 20px; filter: drop-shadow(0 0 16px var(--primary-glow)); }
+.login-gate-card h2 { font-size: 1.4rem; margin-bottom: 10px; color: #fff; }
+.login-gate-card p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+.login-input-stack { display: flex; flex-direction: column; gap: 12px; }
+.login-input-stack input {
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 16px; color: #fff; font-size: 0.95rem; text-align: center; outline: none;
+}
+.login-input-stack input:focus { border-color: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
 
 .nav-tabs {
   display: flex; gap: 8px; padding: 12px 32px; background: rgba(47, 37, 79, 0.1);
@@ -90,6 +114,8 @@ body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x:
   padding: 8px 16px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;
 }
+.btn-lg { padding: 12px 24px; font-size: 1rem; width: 100%; justify-content: center; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
 .btn-primary { background: var(--primary-deep); color: #fff; border: 1px solid var(--primary); }
 .btn-primary:hover { background: #3c2e68; box-shadow: 0 0 14px var(--primary-glow); }
 .btn-accent { background: var(--accent); color: #000; }

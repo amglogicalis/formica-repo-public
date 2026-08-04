@@ -1,8 +1,9 @@
-// FORMICA Queen Studio — Web Console Application
+// FORMICA Queen Studio — Web Console Application with Strict PAT Login Gate
 
 class FormicaQueenConsole {
   constructor() {
     this.token = localStorage.getItem('formica_gh_token') || '';
+    this.currentUser = null;
     this.state = {
       subscriptions: {},
       chambers: {},
@@ -18,17 +19,16 @@ class FormicaQueenConsole {
   init() {
     this.bindEvents();
     if (this.token) {
-      document.getElementById('gh-token').value = this.token;
-      this.loadColonyState();
+      this.verifyAndConnect(this.token);
     } else {
-      this.loadSampleData();
+      this.showDisconnectedState();
     }
   }
 
   bindEvents() {
     // Navigation Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
@@ -38,14 +38,21 @@ class FormicaQueenConsole {
       });
     });
 
-    // Connect Token
+    // Connect Token from Header
     document.getElementById('btn-connect').addEventListener('click', () => {
       const val = document.getElementById('gh-token').value.trim();
-      if (!val) { this.toast('Ingresa un GitHub Token válido.'); return; }
-      this.token = val;
-      localStorage.setItem('formica_gh_token', this.token);
-      this.loadColonyState();
-      this.toast('Bóveda conectada correctamente');
+      this.verifyAndConnect(val);
+    });
+
+    // Connect Token from Gate
+    document.getElementById('btn-connect-gate').addEventListener('click', () => {
+      const val = document.getElementById('gh-token-gate').value.trim();
+      this.verifyAndConnect(val);
+    });
+
+    // Disconnect Token
+    document.getElementById('btn-disconnect').addEventListener('click', () => {
+      this.disconnect();
     });
 
     // Modals
@@ -65,7 +72,67 @@ class FormicaQueenConsole {
     document.getElementById('btn-purge-execute').addEventListener('click', () => this.executePurge());
   }
 
+  async verifyAndConnect(token) {
+    if (!token) {
+      this.toast('Por favor, ingresa un GitHub Personal Access Token (PAT).');
+      return;
+    }
+
+    try {
+      const userRes = await fetch('https://api.github.com/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'User-Agent': 'Formica-Queen-Studio'
+        }
+      });
+
+      if (!userRes.ok) {
+        throw new Error('PAT de GitHub no válido o expirado.');
+      }
+
+      const userData = await userRes.json();
+      this.currentUser = userData.login;
+      this.token = token;
+      localStorage.setItem('formica_gh_token', token);
+
+      this.showConnectedState();
+      await this.loadColonyState();
+      this.toast(`¡Bienvenido @${this.currentUser}! Bóveda conectada.`);
+    } catch (e) {
+      this.toast(e.message || 'Error al conectar con GitHub API');
+      this.showDisconnectedState();
+    }
+  }
+
+  disconnect() {
+    this.token = '';
+    this.currentUser = null;
+    this.state = { subscriptions: {}, chambers: {}, logs: [], soldierRules: {}, legionaryAdapters: {} };
+    localStorage.removeItem('formica_gh_token');
+    document.getElementById('gh-token').value = '';
+    document.getElementById('gh-token-gate').value = '';
+    this.showDisconnectedState();
+    this.toast('Bóveda desconectada.');
+  }
+
+  showConnectedState() {
+    document.getElementById('login-gate').classList.add('hidden');
+    document.getElementById('protected-console').classList.remove('hidden');
+    document.getElementById('auth-input-container').classList.add('hidden');
+    document.getElementById('user-profile-container').classList.remove('hidden');
+    document.getElementById('user-display-name').textContent = `👤 @${this.currentUser}`;
+  }
+
+  showDisconnectedState() {
+    document.getElementById('login-gate').classList.remove('hidden');
+    document.getElementById('protected-console').classList.add('hidden');
+    document.getElementById('auth-input-container').classList.remove('hidden');
+    document.getElementById('user-profile-container').classList.add('hidden');
+  }
+
   async loadColonyState() {
+    if (!this.token) return;
+
     try {
       const res = await fetch('https://api.github.com/repos/.formica-storage/contents/formica-colony-default-colony.json', {
         headers: { 'Authorization': `Bearer ${this.token}` }
@@ -75,18 +142,20 @@ class FormicaQueenConsole {
         const decoded = atob(data.content);
         const loaded = JSON.parse(decoded);
         this.state = { ...this.state, ...loaded };
+      } else {
+        this.loadDefaultState();
       }
     } catch {
-      this.loadSampleData();
+      this.loadDefaultState();
     }
     this.renderAll();
   }
 
-  loadSampleData() {
+  loadDefaultState() {
     this.state = {
       subscriptions: {
-        'sub_demo1': { subId: 'sub_demo1', topic: 'secret.triggered', subscriberName: 'Sinchlor-Alerts', targetWebhookUrl: 'https://api.myterra.org/webhook', active: true },
-        'sub_demo2': { subId: 'sub_demo2', topic: 'user.signup', subscriberName: 'Lumina-IAM', active: true }
+        'sub_sinchlor': { subId: 'sub_sinchlor', topic: 'secret.triggered', subscriberName: 'Sinchlor-Honeytraps', targetWebhookUrl: 'https://api.myterra.org/webhook', active: true },
+        'sub_lumina': { subId: 'sub_lumina', topic: 'user.signup', subscriberName: 'Lumina-IAM', active: true }
       },
       chambers: {
         'session_active': { key: 'session_active', value: 'authenticated', expiresAt: null },
@@ -104,7 +173,6 @@ class FormicaQueenConsole {
         'adapter_ballom': { adapterId: 'adapter_ballom', name: 'Ballom Larvae Shortlinks', provider: 'ballom', active: true }
       }
     };
-    this.renderAll();
   }
 
   renderAll() {
