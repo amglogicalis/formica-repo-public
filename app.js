@@ -4,12 +4,23 @@ class FormicaQueenConsole {
   constructor() {
     this.token = localStorage.getItem('formica_gh_token') || '';
     this.currentUser = null;
+    this.TERRA_APPS = [
+      { id: 'sinchlor', name: 'Sinchlor', icon: '🐝', relativePath: 'sinchlor/Sinchlor', entryFile: 'app.js' },
+      { id: 'lumina', name: 'Lumina', icon: '💡', relativePath: 'lumina/Lumina', entryFile: 'app.js' },
+      { id: 'ballom', name: 'Ballom', icon: '🎈', relativePath: 'ballom/Ballom', entryFile: 'app.js' },
+      { id: 'rolla', name: 'Rolla', icon: '🎲', relativePath: 'rolla/Rolla', entryFile: 'app.js' },
+      { id: 'termes', name: 'Termes', icon: '🐜', relativePath: 'termes/Termes', entryFile: 'app.js' },
+      { id: 'combase', name: 'Combase', icon: '📦', relativePath: 'combase/Combase', entryFile: 'app.js' },
+      { id: 'webbl', name: 'WEBBL', icon: '🌐', relativePath: 'webbl/Webbl', entryFile: 'app.js' }
+    ];
+
     this.state = {
       subscriptions: {},
       chambers: {},
       logs: [],
       soldierRules: {},
-      legionaryAdapters: {}
+      legionaryAdapters: {},
+      connectedProviders: {}
     };
 
     this.editingSubId = null;
@@ -68,11 +79,15 @@ class FormicaQueenConsole {
     document.getElementById('event-topic')?.addEventListener('input', () => this.updateEventMatchingPreview());
     document.getElementById('event-payload-json')?.addEventListener('input', () => this.validateEventJsonPayload());
 
-    document.getElementById('btn-connect-provider')?.addEventListener('click', () => this.openProviderModal());
+    document.getElementById('btn-connect-provider')?.addEventListener('click', () => this.switchToDashboardTab());
     document.getElementById('btn-provider-close')?.addEventListener('click', () => this.closeProviderModal());
     document.getElementById('btn-register-provider')?.addEventListener('click', () => this.registerProvider());
     document.getElementById('provider-type-select')?.addEventListener('change', () => this.updateProviderSnippet());
     document.getElementById('provider-name-input')?.addEventListener('input', () => this.updateProviderSnippet());
+
+    document.getElementById('btn-hub-tab-terra')?.addEventListener('click', () => this.switchHubTab('terra'));
+    document.getElementById('btn-hub-tab-custom')?.addEventListener('click', () => this.switchHubTab('custom'));
+    document.getElementById('btn-hub-connect-custom')?.addEventListener('click', () => this.connectCustomProvider());
 
     document.getElementById('btn-new-kv').addEventListener('click', () => this.openKvModal());
     document.getElementById('btn-kv-cancel').addEventListener('click', () => this.closeKvModal());
@@ -282,12 +297,161 @@ class FormicaQueenConsole {
     document.getElementById('stat-logs-count').textContent = (this.state.logs || []).length;
     document.getElementById('stat-adapters-count').textContent = Object.keys(this.state.legionaryAdapters || {}).length;
 
+    this.renderProviderHub();
+    this.populateConnectedProviderSelects();
     this.renderSubs();
     this.renderKv();
     this.renderLogs();
     this.renderWaf();
     this.renderAdapters();
     this.renderAnthill();
+  }
+
+  // ─── PROVIDER CONNECTION HUB & AUTO-INJECTOR ─────────────────────────────
+
+  switchToDashboardTab() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector('.tab-btn[data-tab="tab-overview"]')?.classList.add('active');
+    document.getElementById('tab-overview')?.classList.add('active');
+  }
+
+  switchHubTab(mode) {
+    const btnTerra = document.getElementById('btn-hub-tab-terra');
+    const btnCustom = document.getElementById('btn-hub-tab-custom');
+    const viewTerra = document.getElementById('hub-view-terra');
+    const viewCustom = document.getElementById('hub-view-custom');
+
+    if (mode === 'terra') {
+      btnTerra.style.background = 'rgba(99,102,241,0.2)';
+      btnTerra.style.borderColor = 'var(--primary)';
+      btnCustom.style.background = 'transparent';
+      btnCustom.style.borderColor = 'var(--border)';
+      viewTerra?.classList.remove('hidden');
+      viewCustom?.classList.add('hidden');
+    } else {
+      btnCustom.style.background = 'rgba(99,102,241,0.2)';
+      btnCustom.style.borderColor = 'var(--primary)';
+      btnTerra.style.background = 'transparent';
+      btnTerra.style.borderColor = 'var(--border)';
+      viewCustom?.classList.remove('hidden');
+      viewTerra?.classList.add('hidden');
+    }
+  }
+
+  renderProviderHub() {
+    const grid = document.getElementById('terra-apps-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const connected = this.state.connectedProviders || {};
+
+    this.TERRA_APPS.forEach(app => {
+      const isConnected = !!connected[app.id];
+      const card = document.createElement('div');
+      card.className = 'resource-card';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="resource-card-title" style="font-size:1.05rem;">${app.icon} ${app.name}</div>
+          <span class="badge-tag" style="color:${isConnected ? 'var(--accent)' : 'var(--text-muted)'}; border-color:${isConnected ? 'var(--accent)' : 'var(--border)'}">
+            ${isConnected ? '🔌 Conectada' : '⚪ No Conectada'}
+          </span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">App Oficial del Ecosistema Terra (Local)</div>
+        <div class="resource-card-actions">
+          <button class="btn ${isConnected ? 'btn-secondary' : 'btn-accent'} btn-sm" onclick="consoleApp.connectTerraApp('${app.id}')">
+            ${isConnected ? '🔄 Reconectar App' : '🔌 Conectar App (1-Clic)'}
+          </button>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  connectTerraApp(appId) {
+    const app = this.TERRA_APPS.find(a => a.id === appId);
+    if (!app) return;
+
+    this.state.connectedProviders = this.state.connectedProviders || {};
+    this.state.connectedProviders[app.id] = {
+      id: app.id,
+      name: app.name,
+      icon: app.icon,
+      type: 'terra-app',
+      connectedAt: new Date().toISOString()
+    };
+
+    const msg = `🔌 App Terra '${app.name}' conectada con éxito mediante Auto-Inyector Formica (SDK & WAF Guard activos).`;
+    this.state.logs.unshift({
+      level: 'info',
+      source: app.name,
+      message: msg,
+      timestamp: new Date().toISOString()
+    });
+
+    this.dispatchToAnthill({ type: 'log', level: 'info', source: app.name, message: msg });
+    this.renderAll();
+    this.persistState();
+    this.toast(`✅ App '${app.name}' conectada correctamente a Formica`);
+  }
+
+  connectCustomProvider() {
+    const nameInput = (document.getElementById('hub-custom-name')?.value || '').trim();
+    const type = document.getElementById('hub-custom-type')?.value || 'aws';
+
+    if (!nameInput) {
+      this.toast('Escribe un Nombre para el Provider Personalizado.');
+      return;
+    }
+
+    const customId = `custom_${nameInput.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    this.state.connectedProviders = this.state.connectedProviders || {};
+    this.state.connectedProviders[customId] = {
+      id: customId,
+      name: nameInput,
+      icon: '⚡',
+      type: `external-${type}`,
+      connectedAt: new Date().toISOString()
+    };
+
+    const msg = `🔌 Provider Personalizado '${nameInput}' [${type.toUpperCase()}] registrado y conectado.`;
+    this.state.logs.unshift({
+      level: 'info',
+      source: nameInput,
+      message: msg,
+      timestamp: new Date().toISOString()
+    });
+
+    this.dispatchToAnthill({ type: 'log', level: 'info', source: nameInput, message: msg });
+
+    document.getElementById('hub-custom-name').value = '';
+    this.renderAll();
+    this.persistState();
+    this.toast(`✅ Provider '${nameInput}' registrado y conectado`);
+  }
+
+  populateConnectedProviderSelects() {
+    const connectedList = Object.values(this.state.connectedProviders || {});
+
+    // Target selects: #waf-target-app, #event-sender, #sub-name, #log-source
+    const wafSelect = document.getElementById('waf-target-app');
+    if (wafSelect) {
+      wafSelect.innerHTML = '';
+      if (!connectedList.length) {
+        wafSelect.innerHTML = `<option value="">⚠️ No hay providers conectados. [🔌 Conectar Provider en Dashboard]</option>`;
+      } else {
+        const globalOpt = document.createElement('option');
+        globalOpt.value = '*';
+        globalOpt.textContent = '🌐 Todos los Providers (* - Global)';
+        wafSelect.appendChild(globalOpt);
+
+        connectedList.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.name;
+          opt.textContent = `${p.icon || '🔌'} ${p.name}`;
+          wafSelect.appendChild(opt);
+        });
+      }
+    }
   }
 
 

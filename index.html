@@ -101,6 +101,49 @@
               <span class="status-dot"></span> Bóveda Online y Sincronizada
             </div>
           </div>
+
+          <!-- 🔌 PROVIDERS CONNECTION HUB -->
+          <div class="glass-card" style="margin-top: 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <div>
+                <h3 style="margin:0; font-size:1.15rem; color:var(--primary);">🔌 Hub de Conexión de Providers y Apps</h3>
+                <p style="margin:4px 0 0 0; font-size:0.8rem; color:var(--text-muted);">Conecta tus Apps de Terra en 1-Clic o configura Providers externos (AWS, Azure, cURL, Python)</p>
+              </div>
+            </div>
+
+            <!-- Tab Switcher inside Hub -->
+            <div style="display:flex; gap:12px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+              <button id="btn-hub-tab-terra" class="btn btn-secondary btn-sm" style="background:rgba(99,102,241,0.2); border-color:var(--primary); color:var(--text);">🐝 Apps de Terra (Auto-Inyección Local)</button>
+              <button id="btn-hub-tab-custom" class="btn btn-secondary btn-sm">⚡ Provider Externo / Personalizado</button>
+            </div>
+
+            <!-- Hub View A: Terra Apps Auto-Injector Grid -->
+            <div id="hub-view-terra">
+              <div class="cards-grid" id="terra-apps-grid"></div>
+            </div>
+
+            <!-- Hub View B: Custom External Provider Configurator -->
+            <div id="hub-view-custom" class="hidden">
+              <div style="max-width:550px; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:10px; padding:16px;">
+                <h4 style="margin-top:0;">⚡ Registrar Provider Externo / Personalizado</h4>
+                <div class="form-group">
+                  <label>Nombre del Provider (ej. 'AWS-Lambda-Payments', 'Python-Worker-Prod'):</label>
+                  <input type="text" id="hub-custom-name" placeholder="Mi-AWS-Lambda-Prod" />
+                </div>
+                <div class="form-group">
+                  <label>Tipo / Framework:</label>
+                  <select id="hub-custom-type" style="width:100%; padding:8px 12px; border-radius:6px; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border);">
+                    <option value="aws">AWS Lambda / EventBridge / SNS</option>
+                    <option value="python">Python (FastAPI, Django, Flask)</option>
+                    <option value="node-fetch">Node.js / Express / Backend Custom</option>
+                    <option value="azure">Azure Functions / Event Grid</option>
+                    <option value="slack-discord">Discord / Slack / Generic Webhook</option>
+                  </select>
+                </div>
+                <button id="btn-hub-connect-custom" class="btn btn-primary">✨ Conectar Provider Personalizado</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- 🧪 TAB 2: PHEROMONES -->
@@ -424,8 +467,8 @@
 
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;" class="form-group">
         <div>
-          <label>Aplicación Web / Dominio Objetivo (`targetApp`):</label>
-          <input type="text" id="waf-target-app" placeholder="sinchlor-api, api.myterra.org o *" />
+          <label>Provider / App a Proteger (`targetApp`):</label>
+          <select id="waf-target-app" class="form-select"></select>
         </div>
         <div>
           <label>Prioridad (1 = Máxima):</label>
