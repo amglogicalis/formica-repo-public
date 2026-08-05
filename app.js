@@ -100,6 +100,7 @@ class FormicaQueenConsole {
     document.getElementById('btn-new-log').addEventListener('click', () => this.openLogModal());
     document.getElementById('btn-log-cancel').addEventListener('click', () => this.closeLogModal());
     document.getElementById('btn-log-save').addEventListener('click', () => this.saveLog());
+    document.getElementById('btn-clear-all-logs')?.addEventListener('click', () => this.clearAllLogs());
     document.getElementById('log-filter-source')?.addEventListener('change', () => this.renderLogs());
     document.getElementById('log-filter-level')?.addEventListener('change', () => this.renderLogs());
 
@@ -755,15 +756,46 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
               <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary);">${data.count} logs</span>
             </div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">Última señal: ${new Date(data.lastSeen).toLocaleTimeString()}</div>
-            <div style="display:flex; gap:6px; font-size:0.72rem;">
-              ${data.levels.info ? `<span style="color:var(--accent);">ℹ️ ${data.levels.info} info</span>` : ''}
-              ${warnCount ? `<span style="color:#f59e0b;">⚠️ ${warnCount} warn</span>` : ''}
-              ${errCount ? `<span style="color:var(--danger); font-weight:700;">🚨 ${errCount} error</span>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; margin-top:6px;">
+              <div style="display:flex; gap:6px;">
+                ${data.levels.info ? `<span style="color:var(--accent);">ℹ️ ${data.levels.info}</span>` : ''}
+                ${warnCount ? `<span style="color:#f59e0b;">⚠️ ${warnCount}</span>` : ''}
+                ${errCount ? `<span style="color:var(--danger); font-weight:700;">🚨 ${errCount}</span>` : ''}
+              </div>
+              <button class="btn btn-secondary btn-xs" style="font-size:0.7rem; padding:2px 6px; border-color:rgba(239,68,68,0.4); color:#f87171;" onclick="event.stopPropagation(); consoleApp.clearLogsForProvider('${src}')">
+                🗑️ Limpiar Logs
+              </button>
             </div>`;
           provGrid.appendChild(card);
         });
       }
     }
+
+  clearLogsForProvider(sourceName) {
+    if (!sourceName) return;
+    const prevCount = (this.state.logs || []).length;
+    this.state.logs = (this.state.logs || []).filter(l => (l.source || 'Unknown') !== sourceName);
+    const removed = prevCount - this.state.logs.length;
+
+    this.renderAll();
+    this.persistState();
+    this.toast(`🗑️ ${removed} logs de '${sourceName}' eliminados`);
+  }
+
+  clearAllLogs() {
+    const total = (this.state.logs || []).length;
+    if (!total) {
+      this.toast('No hay logs registrados para eliminar');
+      return;
+    }
+
+    if (confirm(`¿Eliminar TODOS los ${total} logs de telemetría de Foragers?`)) {
+      this.state.logs = [];
+      this.renderAll();
+      this.persistState();
+      this.toast(`🗑️ Se han eliminado los ${total} logs de Foragers`);
+    }
+  }
 
     // 3. Populate Source Dropdown (preserving current selection)
     const sourceSelect = document.getElementById('log-filter-source');
