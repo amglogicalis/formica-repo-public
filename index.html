@@ -124,23 +124,29 @@
 
             <!-- Hub View B: Custom External Provider Configurator -->
             <div id="hub-view-custom" class="hidden">
-              <div style="max-width:550px; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:10px; padding:16px;">
-                <h4 style="margin-top:0;">⚡ Registrar Provider Externo / Personalizado</h4>
-                <div class="form-group">
-                  <label>Nombre del Provider (ej. 'AWS-Lambda-Payments', 'Python-Worker-Prod'):</label>
-                  <input type="text" id="hub-custom-name" placeholder="Mi-AWS-Lambda-Prod" />
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; flex-wrap:wrap;">
+                <div style="background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:10px; padding:16px;">
+                  <h4 style="margin-top:0;">⚡ Registrar Provider Externo / Personalizado</h4>
+                  <div class="form-group">
+                    <label>Nombre del Provider (ej. 'AWS-Lambda-Payments', 'Python-Worker-Prod'):</label>
+                    <input type="text" id="hub-custom-name" placeholder="Mi-AWS-Lambda-Prod" />
+                  </div>
+                  <div class="form-group">
+                    <label>Tipo / Framework:</label>
+                    <select id="hub-custom-type" style="width:100%; padding:8px 12px; border-radius:6px; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border);">
+                      <option value="aws">AWS Lambda / EventBridge / SNS</option>
+                      <option value="python">Python (FastAPI, Django, Flask)</option>
+                      <option value="node-fetch">Node.js / Express / Backend Custom</option>
+                      <option value="azure">Azure Functions / Event Grid</option>
+                      <option value="slack-discord">Discord / Slack / Generic Webhook</option>
+                    </select>
+                  </div>
+                  <button id="btn-hub-connect-custom" class="btn btn-primary">✨ Conectar Provider Personalizado</button>
                 </div>
-                <div class="form-group">
-                  <label>Tipo / Framework:</label>
-                  <select id="hub-custom-type" style="width:100%; padding:8px 12px; border-radius:6px; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border);">
-                    <option value="aws">AWS Lambda / EventBridge / SNS</option>
-                    <option value="python">Python (FastAPI, Django, Flask)</option>
-                    <option value="node-fetch">Node.js / Express / Backend Custom</option>
-                    <option value="azure">Azure Functions / Event Grid</option>
-                    <option value="slack-discord">Discord / Slack / Generic Webhook</option>
-                  </select>
+                <div>
+                  <h4 style="margin-top:0; color:var(--primary);">⚡ Providers Externos Conectados Actuales</h4>
+                  <div class="cards-grid" id="custom-providers-grid"></div>
                 </div>
-                <button id="btn-hub-connect-custom" class="btn btn-primary">✨ Conectar Provider Personalizado</button>
               </div>
             </div>
           </div>
