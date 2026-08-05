@@ -112,6 +112,8 @@ class FormicaQueenConsole {
     document.getElementById('btn-adapter-cancel').addEventListener('click', () => this.closeAdapterModal());
     document.getElementById('btn-adapter-save').addEventListener('click', () => this.saveAdapter());
     document.getElementById('btn-add-resource-group').addEventListener('click', () => this.addResourceGroupToBuilder());
+    document.getElementById('adapter-frequency')?.addEventListener('change', () => this.toggleAdapterCustomFreqBox());
+    document.getElementById('builder-group-preset')?.addEventListener('change', () => this.updateBuilderGroupFilterPreset());
 
     document.getElementById('btn-purge-dryrun').addEventListener('click', () => this.runPurgeDryRun());
     document.getElementById('btn-purge-execute').addEventListener('click', () => this.executeSelectedPurge());
@@ -642,6 +644,12 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     if (purgeProvSelect) {
       purgeProvSelect.innerHTML = '';
 
+      // Global option
+      const optAll = document.createElement('option');
+      optAll.value = 'all_providers';
+      optAll.textContent = '🌐 Todos los Providers Conectados (*)';
+      purgeProvSelect.appendChild(optAll);
+
       // Internal storage options
       const optChambers = document.createElement('option');
       optChambers.value = 'chambers';
@@ -653,12 +661,22 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       optLogs.textContent = '🍃 Foragers (Histórico de Logs)';
       purgeProvSelect.appendChild(optLogs);
 
-      // Connected providers
-      connectedList.forEach(p => {
+      // Core Terra Apps
+      (this.TERRA_APPS || []).forEach(app => {
         const opt = document.createElement('option');
-        opt.value = p.name;
-        opt.textContent = `${p.icon || '🔌'} ${p.name} (${p.type || 'App'})`;
+        opt.value = app.name;
+        opt.textContent = `${app.icon || '🐜'} App ${app.name} (Terra Ecosystem)`;
         purgeProvSelect.appendChild(opt);
+      });
+
+      // Connected Custom Providers
+      connectedList.forEach(p => {
+        if (!this.TERRA_APPS.some(a => a.name === p.name)) {
+          const opt = document.createElement('option');
+          opt.value = p.name;
+          opt.textContent = `${p.icon || '🔌'} ${p.name} (${p.type || 'Custom'})`;
+          purgeProvSelect.appendChild(opt);
+        }
       });
 
       // Custom Webhook option
@@ -1744,6 +1762,39 @@ def main(mytimer):
 
   // ─── LEGIONARYS ───────────────────────────────────────────────────────────
 
+  toggleAdapterCustomFreqBox() {
+    const freqVal = document.getElementById('adapter-frequency')?.value;
+    const box = document.getElementById('adapter-custom-freq-box');
+    if (box) {
+      box.classList.toggle('hidden', freqVal !== 'custom_cron');
+    }
+  }
+
+  updateBuilderGroupFilterPreset() {
+    const preset = document.getElementById('builder-group-preset')?.value;
+    const filterInput = document.getElementById('builder-group-filter');
+    if (!filterInput) return;
+
+    if (preset === 'nectars_consumed_only') {
+      filterInput.value = 'nectars_consumed';
+    } else if (preset === 'petaltraps_all') {
+      filterInput.value = 'petaltraps';
+    } else if (preset === 'pattern_match') {
+      filterInput.value = 'user-*';
+    } else if (preset === 'expired_only') {
+      filterInput.value = 'expired_only';
+    } else if (preset === 'older_than_30d') {
+      filterInput.value = 'older_than_30d';
+    } else if (preset === 'error_logs_only') {
+      filterInput.value = 'level:error';
+    } else if (preset === 'all') {
+      filterInput.value = '*';
+    } else if (preset === 'custom') {
+      filterInput.value = '';
+      filterInput.focus();
+    }
+  }
+
   openAdapterModal(adapterId = null) {
     this.editingAdapterId = adapterId;
     this.populateConnectedProviderSelects();
@@ -1752,18 +1803,29 @@ def main(mytimer):
       const a = this.state.legionaryAdapters[adapterId];
       document.getElementById('modal-adapter-title').textContent = '⚔️ Editar Adaptador de Purga';
       document.getElementById('adapter-name').value = a.name;
-      document.getElementById('adapter-frequency').value = a.frequency || 'daily_00';
+      
+      const isKnownFreq = ['daily_00', 'every_12h', 'every_6h', 'every_1h', 'weekly', 'manual'].includes(a.frequency);
+      if (isKnownFreq) {
+        document.getElementById('adapter-frequency').value = a.frequency;
+        document.getElementById('adapter-custom-freq-text').value = '';
+      } else {
+        document.getElementById('adapter-frequency').value = 'custom_cron';
+        document.getElementById('adapter-custom-freq-text').value = a.frequency || '';
+      }
+
       document.getElementById('adapter-endpoint').value = a.targetEndpoint || '';
       this.currentAdapterGroups = [...(a.groups || [])];
     } else {
       document.getElementById('modal-adapter-title').textContent = '⚔️ Adaptador de Purga Programada';
       document.getElementById('adapter-name').value = '';
       document.getElementById('adapter-frequency').value = 'daily_00';
+      document.getElementById('adapter-custom-freq-text').value = '';
       document.getElementById('adapter-endpoint').value = '';
       document.getElementById('builder-group-name').value = '';
       document.getElementById('builder-group-filter').value = '';
       this.currentAdapterGroups = [];
     }
+    this.toggleAdapterCustomFreqBox();
     this.renderAddedGroupsList();
     document.getElementById('modal-adapter').classList.remove('hidden');
   }
@@ -1779,7 +1841,7 @@ def main(mytimer):
     const groupName = nameInput.value.trim();
     if (!groupName) { this.toast('Escribe un nombre para el grupo.'); return; }
 
-    const provider = provSelect.value || 'chambers';
+    const provider = provSelect.value || 'all_providers';
     const preset = presetSelect.value || 'expired_only';
     const filterRule = filterInput.value.trim() || preset;
 
@@ -1818,7 +1880,12 @@ def main(mytimer):
 
   saveAdapter() {
     const name = document.getElementById('adapter-name').value.trim();
-    const frequency = document.getElementById('adapter-frequency').value || 'daily_00';
+    let frequency = document.getElementById('adapter-frequency').value || 'daily_00';
+    if (frequency === 'custom_cron') {
+      const customText = document.getElementById('adapter-custom-freq-text')?.value.trim();
+      frequency = customText || 'custom_cron';
+    }
+
     const endpoint = document.getElementById('adapter-endpoint').value.trim();
 
     if (!name) { this.toast('El nombre del adaptador es requerido.'); return; }
