@@ -771,32 +771,6 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       }
     }
 
-  clearLogsForProvider(sourceName) {
-    if (!sourceName) return;
-    const prevCount = (this.state.logs || []).length;
-    this.state.logs = (this.state.logs || []).filter(l => (l.source || 'Unknown') !== sourceName);
-    const removed = prevCount - this.state.logs.length;
-
-    this.renderAll();
-    this.persistState();
-    this.toast(`🗑️ ${removed} logs de '${sourceName}' eliminados`);
-  }
-
-  clearAllLogs() {
-    const total = (this.state.logs || []).length;
-    if (!total) {
-      this.toast('No hay logs registrados para eliminar');
-      return;
-    }
-
-    if (confirm(`¿Eliminar TODOS los ${total} logs de telemetría de Foragers?`)) {
-      this.state.logs = [];
-      this.renderAll();
-      this.persistState();
-      this.toast(`🗑️ Se han eliminado los ${total} logs de Foragers`);
-    }
-  }
-
     // 3. Populate Source Dropdown (preserving current selection)
     const sourceSelect = document.getElementById('log-filter-source');
     if (sourceSelect) {
@@ -831,17 +805,45 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       return;
     }
 
-    filteredLogs.slice(0, 100).forEach(l => {
-      const row = document.createElement('div');
-      row.className = 'log-row';
-      row.innerHTML = `
-        <span class="log-level ${l.level}">${l.level}</span>
-        <span style="color:var(--text-muted); font-size:0.78rem;">${new Date(l.timestamp).toLocaleTimeString()}</span>
-        <strong style="color:var(--primary); font-size:0.85rem;">${l.source}:</strong>
-        <span style="font-size:0.85rem;">${l.message}</span>
-        ${l.correlationId ? `<span style="color:var(--accent); font-size:0.75rem; margin-left:auto;">(${l.correlationId})</span>` : ''}`;
-      list.appendChild(row);
+    filteredLogs.forEach(l => {
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      const lvl = (l.level || 'info').toLowerCase();
+      const badgeClass = lvl === 'error' || lvl === 'warn' ? lvl : 'info';
+      item.innerHTML = `
+        <span class="log-level ${badgeClass}">${(l.level || 'INFO').toUpperCase()}</span>
+        <span style="font-weight:600; color:var(--text); margin-right:8px;">[${l.source || 'App'}]</span>
+        <span style="flex:1;">${this.escapeHtml(l.message || '')}</span>
+        <span class="log-time">${new Date(l.timestamp || Date.now()).toLocaleTimeString()}</span>
+      `;
+      list.appendChild(item);
     });
+  }
+
+  clearLogsForProvider(sourceName) {
+    if (!sourceName) return;
+    const prevCount = (this.state.logs || []).length;
+    this.state.logs = (this.state.logs || []).filter(l => (l.source || 'Unknown') !== sourceName);
+    const removed = prevCount - this.state.logs.length;
+
+    this.renderAll();
+    this.persistState();
+    this.toast(`🗑️ ${removed} logs de '${sourceName}' eliminados`);
+  }
+
+  clearAllLogs() {
+    const total = (this.state.logs || []).length;
+    if (!total) {
+      this.toast('No hay logs registrados para eliminar');
+      return;
+    }
+
+    if (confirm(`¿Eliminar TODOS los ${total} logs de telemetría de Foragers?`)) {
+      this.state.logs = [];
+      this.renderAll();
+      this.persistState();
+      this.toast(`🗑️ Se han eliminado los ${total} logs de Foragers`);
+    }
   }
 
   renderWaf() {
