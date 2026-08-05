@@ -70,6 +70,8 @@ class FormicaQueenConsole {
     document.getElementById('btn-new-log').addEventListener('click', () => this.openLogModal());
     document.getElementById('btn-log-cancel').addEventListener('click', () => this.closeLogModal());
     document.getElementById('btn-log-save').addEventListener('click', () => this.saveLog());
+    document.getElementById('log-filter-source')?.addEventListener('change', () => this.renderLogs());
+    document.getElementById('log-filter-level')?.addEventListener('change', () => this.renderLogs());
 
     document.getElementById('btn-new-waf').addEventListener('click', () => this.openWafModal());
     document.getElementById('btn-waf-cancel').addEventListener('click', () => this.closeWafModal());
@@ -344,21 +346,99 @@ class FormicaQueenConsole {
   }
 
   renderLogs() {
-    const list = document.getElementById('logs-list');
-    list.innerHTML = '';
     const logs = this.state.logs || [];
-    if (!logs.length) {
-      list.innerHTML = `<div style="padding:16px; color:var(--text-muted);">No hay logs registrados.</div>`;
+
+    // 1. Detect unique provider sources & build statistics
+    const sourcesMap = {};
+    logs.forEach(l => {
+      const src = l.source || 'Unknown';
+      if (!sourcesMap[src]) {
+        sourcesMap[src] = { count: 0, lastSeen: l.timestamp, levels: { info: 0, warn: 0, error: 0, debug: 0 } };
+      }
+      sourcesMap[src].count++;
+      if (l.level && sourcesMap[src].levels[l.level] !== undefined) {
+        sourcesMap[src].levels[l.level]++;
+      }
+    });
+
+    // 2. Render Connected Providers Grid
+    const provGrid = document.getElementById('forager-providers-grid');
+    if (provGrid) {
+      provGrid.innerHTML = '';
+      const sources = Object.keys(sourcesMap);
+      if (!sources.length) {
+        provGrid.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem;">No se han detectado fuentes de logs todavía.</p>`;
+      } else {
+        sources.forEach(src => {
+          const data = sourcesMap[src];
+          const errCount = data.levels.error;
+          const warnCount = data.levels.warn;
+          const card = document.createElement('div');
+          card.className = 'resource-card';
+          card.style.cssText = 'cursor:pointer; transition: transform 0.15s ease, border-color 0.15s ease;';
+          card.onclick = () => {
+            const select = document.getElementById('log-filter-source');
+            if (select) { select.value = src; this.renderLogs(); }
+          };
+
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <strong style="color:var(--primary); font-size:1rem;">🔌 ${src}</strong>
+              <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary);">${data.count} logs</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">Última señal: ${new Date(data.lastSeen).toLocaleTimeString()}</div>
+            <div style="display:flex; gap:6px; font-size:0.72rem;">
+              ${data.levels.info ? `<span style="color:var(--accent);">ℹ️ ${data.levels.info} info</span>` : ''}
+              ${warnCount ? `<span style="color:#f59e0b;">⚠️ ${warnCount} warn</span>` : ''}
+              ${errCount ? `<span style="color:var(--danger); font-weight:700;">🚨 ${errCount} error</span>` : ''}
+            </div>`;
+          provGrid.appendChild(card);
+        });
+      }
+    }
+
+    // 3. Populate Source Dropdown (preserving current selection)
+    const sourceSelect = document.getElementById('log-filter-source');
+    if (sourceSelect) {
+      const currentVal = sourceSelect.value || 'ALL';
+      sourceSelect.innerHTML = '<option value="ALL">Todas las fuentes (ALL)</option>';
+      Object.keys(sourcesMap).forEach(src => {
+        const opt = document.createElement('option');
+        opt.value = src;
+        opt.textContent = `${src} (${sourcesMap[src].count})`;
+        if (src === currentVal) opt.selected = true;
+        sourceSelect.appendChild(opt);
+      });
+    }
+
+    // 4. Filter and Render Logs Feed
+    const list = document.getElementById('logs-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const selectedSource = sourceSelect?.value || 'ALL';
+    const levelSelect = document.getElementById('log-filter-level');
+    const selectedLevel = levelSelect?.value || 'ALL';
+
+    const filteredLogs = logs.filter(l => {
+      const matchSource = selectedSource === 'ALL' || l.source === selectedSource;
+      const matchLevel = selectedLevel === 'ALL' || l.level === selectedLevel;
+      return matchSource && matchLevel;
+    });
+
+    if (!filteredLogs.length) {
+      list.innerHTML = `<div style="padding:16px; color:var(--text-muted); font-size:0.85rem;">No hay logs que coincidan con los filtros seleccionados.</div>`;
       return;
     }
-    logs.slice(0, 100).forEach(l => {
+
+    filteredLogs.slice(0, 100).forEach(l => {
       const row = document.createElement('div');
       row.className = 'log-row';
       row.innerHTML = `
         <span class="log-level ${l.level}">${l.level}</span>
-        <span style="color:var(--text-muted);">${new Date(l.timestamp).toLocaleTimeString()}</span>
-        <strong style="color:var(--primary);">${l.source}:</strong>
-        <span>${l.message}</span>
+        <span style="color:var(--text-muted); font-size:0.78rem;">${new Date(l.timestamp).toLocaleTimeString()}</span>
+        <strong style="color:var(--primary); font-size:0.85rem;">${l.source}:</strong>
+        <span style="font-size:0.85rem;">${l.message}</span>
         ${l.correlationId ? `<span style="color:var(--accent); font-size:0.75rem; margin-left:auto;">(${l.correlationId})</span>` : ''}`;
       list.appendChild(row);
     });
