@@ -636,6 +636,37 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
         });
       }
     }
+
+    // Purge Adapter Provider Select: #builder-group-provider
+    const purgeProvSelect = document.getElementById('builder-group-provider');
+    if (purgeProvSelect) {
+      purgeProvSelect.innerHTML = '';
+
+      // Internal storage options
+      const optChambers = document.createElement('option');
+      optChambers.value = 'chambers';
+      optChambers.textContent = '🕳️ Chambers (Cámaras K/V)';
+      purgeProvSelect.appendChild(optChambers);
+
+      const optLogs = document.createElement('option');
+      optLogs.value = 'foragers_logs';
+      optLogs.textContent = '🍃 Foragers (Histórico de Logs)';
+      purgeProvSelect.appendChild(optLogs);
+
+      // Connected providers
+      connectedList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = `${p.icon || '🔌'} ${p.name} (${p.type || 'App'})`;
+        purgeProvSelect.appendChild(opt);
+      });
+
+      // Custom Webhook option
+      const optHook = document.createElement('option');
+      optHook.value = 'custom_webhook';
+      optHook.textContent = '🌐 Custom Purge Webhook';
+      purgeProvSelect.appendChild(optHook);
+    }
   }
 
 
@@ -951,21 +982,41 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     grid.innerHTML = '';
     const adapters = Object.values(this.state.legionaryAdapters || {});
     if (!adapters.length) {
-      grid.innerHTML = `<p style="color:var(--text-muted);">No hay adaptadores de purga. Haz clic en '+ Nuevo Adaptador de Purga'.</p>`;
+      grid.innerHTML = `<p style="color:var(--text-muted);">No hay adaptadores de purga configurados. Haz clic en '+ Nuevo Adaptador de Purga'.</p>`;
       return;
     }
+
+    const freqMap = {
+      'daily_00': '🕛 Diario 00:00 UTC',
+      'every_12h': '⏱️ Cada 12 horas',
+      'every_6h': '⏱️ Cada 6 horas',
+      'weekly': '📅 Semanal (Domingos)',
+      'manual': '🖐️ Solo Manual'
+    };
+
     adapters.forEach(a => {
       const card = document.createElement('div');
       card.className = 'resource-card';
+      const freqText = freqMap[a.frequency] || '🕛 Programado';
+
       const groupsList = (a.groups || []).map(g => `
-        <div style="font-size:0.82rem; margin-bottom:4px; color:var(--text-muted);">
-          📦 <strong>${g.groupName}</strong> <span class="badge-tag">${g.provider.toUpperCase()}</span>
+        <div style="font-size:0.8rem; margin-bottom:6px; background:rgba(0,0,0,0.3); padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong style="color:var(--text);">📦 ${g.groupName}</strong>
+            <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary); margin-left:6px;">${(g.provider || 'ALL').toUpperCase()}</span>
+          </div>
+          <span style="font-size:0.72rem; color:var(--accent); font-weight:600;">${g.filter || 'expired_only'}</span>
         </div>`).join('');
+
       card.innerHTML = `
-        <div class="resource-card-title">${a.name}</div>
-        <div style="margin-bottom:12px; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;">
-          ${groupsList || '<span style="color:var(--text-muted);">Sin grupos de recursos</span>'}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="resource-card-title" style="margin:0;">⚔️ ${a.name}</div>
+          <span class="badge-tag" style="background:rgba(16,185,129,0.15); color:var(--accent);">${freqText}</span>
         </div>
+        <div style="margin-bottom:12px;">
+          ${groupsList || '<span style="color:var(--text-muted); font-size:0.8rem;">Sin grupos de recursos</span>'}
+        </div>
+        ${a.targetEndpoint ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">Webhook: <code>${a.targetEndpoint}</code></div>` : ''}
         <div class="resource-card-actions">
           <button class="btn btn-secondary btn-sm" onclick="consoleApp.editAdapter('${a.adapterId}')">✏️ Editar</button>
           <button class="btn btn-danger btn-sm" onclick="consoleApp.delAdapter('${a.adapterId}')">🗑️ Eliminar</button>
@@ -1695,30 +1746,44 @@ def main(mytimer):
 
   openAdapterModal(adapterId = null) {
     this.editingAdapterId = adapterId;
-    if (adapterId) {
+    this.populateConnectedProviderSelects();
+
+    if (adapterId && this.state.legionaryAdapters[adapterId]) {
       const a = this.state.legionaryAdapters[adapterId];
-      document.getElementById('modal-adapter-title').textContent = 'Editar Adaptador de Purga';
+      document.getElementById('modal-adapter-title').textContent = '⚔️ Editar Adaptador de Purga';
       document.getElementById('adapter-name').value = a.name;
+      document.getElementById('adapter-frequency').value = a.frequency || 'daily_00';
       document.getElementById('adapter-endpoint').value = a.targetEndpoint || '';
       this.currentAdapterGroups = [...(a.groups || [])];
     } else {
-      document.getElementById('modal-adapter-title').textContent = 'Adaptador de Purga Programado';
+      document.getElementById('modal-adapter-title').textContent = '⚔️ Adaptador de Purga Programada';
       document.getElementById('adapter-name').value = '';
+      document.getElementById('adapter-frequency').value = 'daily_00';
       document.getElementById('adapter-endpoint').value = '';
+      document.getElementById('builder-group-name').value = '';
+      document.getElementById('builder-group-filter').value = '';
       this.currentAdapterGroups = [];
     }
     this.renderAddedGroupsList();
     document.getElementById('modal-adapter').classList.remove('hidden');
   }
+
   closeAdapterModal() { document.getElementById('modal-adapter').classList.add('hidden'); }
 
   addResourceGroupToBuilder() {
     const nameInput = document.getElementById('builder-group-name');
     const provSelect = document.getElementById('builder-group-provider');
+    const presetSelect = document.getElementById('builder-group-preset');
     const filterInput = document.getElementById('builder-group-filter');
+
     const groupName = nameInput.value.trim();
     if (!groupName) { this.toast('Escribe un nombre para el grupo.'); return; }
-    this.currentAdapterGroups.push({ groupName, provider: provSelect.value, filter: filterInput.value.trim() || 'default' });
+
+    const provider = provSelect.value || 'chambers';
+    const preset = presetSelect.value || 'expired_only';
+    const filterRule = filterInput.value.trim() || preset;
+
+    this.currentAdapterGroups.push({ groupName, provider, filter: filterRule, preset });
     nameInput.value = '';
     filterInput.value = '';
     this.renderAddedGroupsList();
@@ -1741,10 +1806,10 @@ def main(mytimer):
       const row = document.createElement('div');
       row.className = 'added-group-row';
       row.innerHTML = `
-        <div>
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
           <strong>📦 ${g.groupName}</strong>
-          <span class="badge-tag" style="margin-left:6px;">${g.provider.toUpperCase()}</span>
-          <span style="font-size:0.75rem; color:var(--text-muted); margin-left:6px;">(${g.filter})</span>
+          <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary);">${(g.provider || 'ALL').toUpperCase()}</span>
+          <span style="font-size:0.75rem; color:var(--accent); font-weight:600;">(${g.filter || 'expired_only'})</span>
         </div>
         <button class="btn btn-danger btn-sm" onclick="consoleApp.removeResourceGroupFromBuilder(${idx})" type="button">🗑️</button>`;
       container.appendChild(row);
@@ -1753,25 +1818,45 @@ def main(mytimer):
 
   saveAdapter() {
     const name = document.getElementById('adapter-name').value.trim();
+    const frequency = document.getElementById('adapter-frequency').value || 'daily_00';
     const endpoint = document.getElementById('adapter-endpoint').value.trim();
+
     if (!name) { this.toast('El nombre del adaptador es requerido.'); return; }
     if (!this.currentAdapterGroups.length) { this.toast('Añade al menos un grupo de recursos.'); return; }
+
     const id = this.editingAdapterId || `adapter_${Date.now()}`;
     this.state.legionaryAdapters[id] = {
-      adapterId: id, name, groups: [...this.currentAdapterGroups],
-      targetEndpoint: endpoint || undefined, active: true
+      adapterId: id,
+      name,
+      frequency,
+      groups: [...this.currentAdapterGroups],
+      targetEndpoint: endpoint || undefined,
+      active: true,
+      updatedAt: new Date().toISOString()
     };
     this.closeAdapterModal();
     this.renderAll();
     this.persistState();
-    this.toast('Adaptador guardado correctamente');
+    this.toast('Adaptador de Purga guardado correctamente');
   }
+
   editAdapter(id) { this.openAdapterModal(id); }
-  delAdapter(id) {
-    delete this.state.legionaryAdapters[id];
-    this.renderAll();
-    this.persistState();
-    this.toast('Adaptador eliminado');
+
+  async delAdapter(id) {
+    if (this.state.legionaryAdapters[id]) {
+      const name = this.state.legionaryAdapters[id].name;
+      const confirmed = await this.confirmModal(`¿Estás seguro de que deseas eliminar el adaptador de purga '${name}'?`, {
+        title: 'Eliminar Adaptador de Purga',
+        icon: '⚔️',
+        acceptText: 'Sí, Eliminar'
+      });
+      if (!confirmed) return;
+
+      delete this.state.legionaryAdapters[id];
+      this.renderAll();
+      this.persistState();
+      this.toast(`🗑️ Adaptador '${name}' eliminado`);
+    }
   }
 
   // ─── PURGE SIMULATION ─────────────────────────────────────────────────────

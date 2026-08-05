@@ -531,42 +531,64 @@
 
   <!-- Modal 6: Legionarys Purge Adapter with Dynamic Resource Groups Builder -->
   <div id="modal-adapter" class="modal-backdrop hidden">
-    <div class="modal-box glass-card" style="max-width: 580px;">
-      <h3 id="modal-adapter-title">Adaptador de Purga (Añadidor Dinámico de Grupos)</h3>
+    <div class="modal-box glass-card" style="max-width: 620px;">
+      <h3 id="modal-adapter-title" style="color: var(--primary); margin-bottom: 4px;">⚔️ Adaptador de Purga Programada</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px;">Configura tareas de limpieza y destrucción automática de néctares, logs y recursos de tus providers conectados.</p>
       
-      <div class="form-group">
-        <label>Nombre del Adaptador:</label>
-        <input type="text" id="adapter-name" placeholder="Limpiador Bóvedas Producción" />
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+        <div>
+          <label>Nombre del Adaptador:</label>
+          <input type="text" id="adapter-name" placeholder="Limpiador Bóvedas Producción" />
+        </div>
+        <div>
+          <label>Frecuencia / Intervalo de Purga:</label>
+          <select id="adapter-frequency" class="form-select">
+            <option value="daily_00">🕛 Diario a medianoche (00:00 UTC)</option>
+            <option value="every_12h">⏱️ Cada 12 horas</option>
+            <option value="every_6h">⏱️ Cada 6 horas</option>
+            <option value="weekly">📅 Semanal (Domingos)</option>
+            <option value="manual">🖐️ Solo Ejecución Manual</option>
+          </select>
+        </div>
       </div>
 
       <!-- Dynamic Resource Group Builder Sub-Form -->
-      <div class="group-builder-card">
-        <h4>➕ Añadir Grupo / Recurso Específico a Destruir</h4>
+      <div class="group-builder-card" style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+        <h4 style="margin-top:0; margin-bottom:10px; font-size:0.9rem; color:var(--text);">➕ Añadir Grupo / Recurso Específico a Purgar</h4>
+        
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
           <div>
             <label style="font-size:0.75rem; color:var(--text-muted);">Nombre del Grupo:</label>
-            <input type="text" id="builder-group-name" placeholder="Néctares Expirados" />
+            <input type="text" id="builder-group-name" placeholder="Ej. Néctares y Logs Expirados" />
           </div>
           <div>
-            <label style="font-size:0.75rem; color:var(--text-muted);">Tipo / Proveedor:</label>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Fuente / Provider a Purgar:</label>
             <select id="builder-group-provider" class="form-select">
-              <option value="sinchlor">🛡️ Sinchlor (Néctares)</option>
-              <option value="ballom">🎭 Ballom (Larvae)</option>
-              <option value="lumina">🔐 Lumina (MagicLinks)</option>
-              <option value="rolla">🗄️ Rolla (Balls Obsoletas)</option>
-              <option value="chambers">🕳️ Chambers (K/V Expirado)</option>
-              <option value="aws">☁️ AWS S3 / Cloud</option>
-              <option value="custom_webhook">🌐 Custom Webhook</option>
+              <option value="">Cargando fuentes conectadas...</option>
             </select>
           </div>
         </div>
-        <div style="display: flex; gap: 10px; align-items: flex-end;">
-          <div style="flex:1;">
-            <label style="font-size:0.75rem; color:var(--text-muted);">Filtro / Condición (Opcional):</label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Regla / Política Predefinida:</label>
+            <select id="builder-group-preset" class="form-select">
+              <option value="expired_only">⏳ Solo Registros/TTL Expirados</option>
+              <option value="older_than_30d">🗓️ Antigüedad superior a 30 días</option>
+              <option value="error_logs_only">🚨 Solo Logs de Estado ERROR</option>
+              <option value="all">🔥 Purga Completa (Reset del Recurso)</option>
+              <option value="custom">✏️ Regla Custom (Especificar Abajo)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Filtro / Expresión Custom (Opcional):</label>
             <input type="text" id="builder-group-filter" placeholder="expired_only, prod_* o *" />
           </div>
-          <button id="btn-add-resource-group" class="btn btn-accent btn-sm" type="button" style="height: 38px;">+ Añadir Grupo</button>
         </div>
+
+        <button id="btn-add-resource-group" class="btn btn-accent btn-sm" type="button" style="width: 100%; margin-top: 4px; height: 34px;">
+          + Añadir Grupo de Purga al Adaptador
+        </button>
       </div>
 
       <!-- Added Groups Container List -->
@@ -576,7 +598,7 @@
       </div>
 
       <div class="form-group">
-        <label>Target Webhook Endpoint (Opcional):</label>
+        <label>Target Webhook Endpoint / Notificación (Opcional):</label>
         <input type="text" id="adapter-endpoint" placeholder="https://api.myterra.org/purge-hook" />
       </div>
       <div class="modal-actions">
