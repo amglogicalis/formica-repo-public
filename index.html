@@ -129,6 +129,7 @@
           <div class="section-header">
             <h2>🍃 Foragers — Telemetría & Registros de Providers</h2>
             <div class="action-buttons">
+              <button id="btn-connect-provider" class="btn btn-secondary">🔌 + Conectar Provider / Fuente</button>
               <button id="btn-new-log" class="btn btn-accent">+ Enviar Log de Prueba</button>
             </div>
           </div>
@@ -219,16 +220,20 @@
     <div class="modal-box glass-card">
       <h3 id="modal-sub-title">Nueva Suscripción Pub/Sub</h3>
       <div class="form-group">
-        <label>Tópico (p. ej. 'user.created', 'secret.triggered', '*'):</label>
-        <input type="text" id="sub-topic" placeholder="user.created" />
+        <label>Tópico (p. ej. 'user.created', 'security.alert', '*'):</label>
+        <input type="text" id="sub-topic" placeholder="security.alert" />
       </div>
       <div class="form-group">
         <label>Nombre del Suscriptor / App:</label>
-        <input type="text" id="sub-name" placeholder="Sinchlor-Notifier" />
+        <input type="text" id="sub-name" placeholder="Lumina-IAM" />
       </div>
       <div class="form-group">
         <label>Webhook Target URL (Opcional):</label>
-        <input type="text" id="sub-webhook" placeholder="https://api.myapp.com/webhook" />
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="sub-webhook" placeholder="https://api.myterra.org/webhook" style="flex:1;" />
+          <button id="btn-test-webhook" class="btn btn-secondary" style="flex-shrink:0;">🧪 Probar Webhook</button>
+        </div>
+        <div id="sub-webhook-test-result" style="font-size:0.78rem; margin-top:6px;"></div>
       </div>
       <div class="modal-actions">
         <button id="btn-sub-cancel" class="btn btn-secondary">Cancelar</button>
@@ -237,25 +242,82 @@
     </div>
   </div>
 
-  <!-- Modal 2: Publish Event -->
+  <!-- Modal 2: Publish Event with Structured JSON, Live Matching, Channel Selector & Dry-Run -->
   <div id="modal-event" class="modal-backdrop hidden">
-    <div class="modal-box glass-card">
+    <div class="modal-box glass-card" style="max-width: 580px;">
       <h3>Publicar Evento Pheromones</h3>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;" class="form-group">
+        <div>
+          <label>Tópico del Evento:</label>
+          <input type="text" id="event-topic" placeholder="security.alert" />
+        </div>
+        <div>
+          <label>Emisor (Sender):</label>
+          <input type="text" id="event-sender" placeholder="Sinchlor-Honeytrap" />
+        </div>
+      </div>
+
+      <!-- Live Matching Preview -->
+      <div id="event-matching-preview" style="background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:14px; font-size:0.8rem;">
+        <span style="color:var(--text-muted);">Escribe un tópico para ver suscriptores coincidentes en tiempo real.</span>
+      </div>
+
+      <!-- JSON Payload Editor -->
       <div class="form-group">
-        <label>Tópico:</label>
-        <input type="text" id="event-topic" placeholder="secret.triggered" />
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <label style="margin:0;">Payload del Evento (JSON Estructurado):</label>
+          <div>
+            <span id="json-valid-badge" class="badge-tag" style="color:var(--accent); border-color:var(--accent);">JSON Válido ✓</span>
+            <button id="btn-format-json" class="btn btn-secondary btn-sm" style="margin-left:6px;" type="button">✨ Formatear JSON</button>
+          </div>
+        </div>
+        <textarea id="event-payload-json" rows="5" style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:10px; resize:vertical;"></textarea>
+      </div>
+
+      <!-- Delivery Channel Selector -->
+      <div class="form-group">
+        <label>Canal de Entrega:</label>
+        <select id="event-delivery-channel" style="width:100%; padding:8px 12px; border-radius:6px; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border);">
+          <option value="direct">⚡ Inmediato (Consola Directa — POST HTTP directo)</option>
+          <option value="anthill">🐜 Vía Anthill Processing Server (Cola asíncrona en GitHub Actions)</option>
+        </select>
+      </div>
+
+      <div class="modal-actions" style="display:flex; justify-content:space-between; width:100%;">
+        <button id="btn-event-dryrun" class="btn btn-secondary" type="button">🔍 Simular (Dry-Run)</button>
+        <div style="display:flex; gap:8px;">
+          <button id="btn-event-cancel" class="btn btn-secondary">Cancelar</button>
+          <button id="btn-event-pub" class="btn btn-primary">🚀 Enviar Evento</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2B: Connect Provider / Log Source -->
+  <div id="modal-connect-provider" class="modal-backdrop hidden">
+    <div class="modal-box glass-card" style="max-width: 600px;">
+      <h3>🔌 Conectar Nuevo Provider / Fuente de Telemetría</h3>
+      <div class="form-group">
+        <label>Tipo de Provider / Framework:</label>
+        <select id="provider-type-select" style="width:100%; padding:8px 12px; border-radius:6px; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border);">
+          <option value="terra-sdk">Terra SDK (Sinchlor, Lumina, Ballom, Rolla, Termes)</option>
+          <option value="node-fetch">Node.js / Express / Backend Custom (cURL / HTTP)</option>
+          <option value="python">Python (FastAPI, Django, Flask)</option>
+          <option value="azure">Azure Functions / Event Grid</option>
+          <option value="slack-discord">Discord / Slack / Generic Webhook Receiver</option>
+        </select>
       </div>
       <div class="form-group">
-        <label>Emisor (Sender):</label>
-        <input type="text" id="event-sender" placeholder="Sinchlor-Honeytrap" />
+        <label>Nombre del Provider / Servicio:</label>
+        <input type="text" id="provider-name-input" placeholder="mi-servicio-prod" />
       </div>
       <div class="form-group">
-        <label>Mensaje / Payload (Texto):</label>
-        <input type="text" id="event-msg" placeholder="Intento de acceso en trampas decoy" />
+        <label>Código de Integración Generado:</label>
+        <pre id="provider-snippet-code" style="background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:0.75rem; color:var(--accent); font-family:monospace; overflow-x:auto; white-space:pre-wrap; margin:0; max-height:200px;"></pre>
       </div>
       <div class="modal-actions">
-        <button id="btn-event-cancel" class="btn btn-secondary">Cancelar</button>
-        <button id="btn-event-pub" class="btn btn-primary">Enviar Evento</button>
+        <button id="btn-provider-close" class="btn btn-primary">Cerrar</button>
       </div>
     </div>
   </div>
