@@ -652,7 +652,7 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     const connectedMap = this.state.connectedProviders || {};
     const activeConnectedList = Object.values(connectedMap).filter(p => p.active !== false);
 
-    // Target selects: #waf-target-app, #event-sender, #sub-name, #log-source
+    // Target selects: #waf-target-app
     const wafSelect = document.getElementById('waf-target-app');
     if (wafSelect) {
       wafSelect.innerHTML = '';
@@ -695,11 +695,11 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       optLogs.textContent = '🍃 Foragers (Histórico de Logs)';
       purgeProvSelect.appendChild(optLogs);
 
-      // Core Terra Apps (skip paused ones)
+      // Core Terra Apps (ONLY connected and ACTIVE ones)
       (this.TERRA_APPS || []).forEach(app => {
-        const provObj = connectedMap[app.id] || Object.values(connectedMap).find(p => p.name === app.name);
-        const isPaused = provObj && provObj.active === false;
-        if (!isPaused) {
+        const provObj = connectedMap[app.id] || Object.values(connectedMap).find(p => p.name.toLowerCase() === app.name.toLowerCase());
+        const isConnectedAndActive = provObj && provObj.active !== false;
+        if (isConnectedAndActive) {
           const opt = document.createElement('option');
           opt.value = app.name;
           opt.textContent = `${app.icon || '🐜'} App ${app.name} (Terra Ecosystem)`;
@@ -709,7 +709,7 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
 
       // Connected Custom Active Providers
       activeConnectedList.forEach(p => {
-        if (!this.TERRA_APPS.some(a => a.name === p.name)) {
+        if (!this.TERRA_APPS.some(a => a.name.toLowerCase() === p.name.toLowerCase())) {
           const opt = document.createElement('option');
           opt.value = p.name;
           opt.textContent = `${p.icon || '🔌'} ${p.name} (${p.type || 'Custom'})`;
@@ -722,6 +722,56 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       optHook.value = 'custom_webhook';
       optHook.textContent = '🌐 Custom Purge Webhook';
       purgeProvSelect.appendChild(optHook);
+    }
+
+    // Event Sender select: #event-sender
+    const senderSelect = document.getElementById('event-sender');
+    if (senderSelect) {
+      const currentVal = senderSelect.value;
+      senderSelect.innerHTML = '';
+      const studioOpt = document.createElement('option');
+      studioOpt.value = 'Queen-Studio';
+      studioOpt.textContent = '👑 Queen-Studio (Console)';
+      senderSelect.appendChild(studioOpt);
+
+      activeConnectedList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = `${p.icon || '🔌'} ${p.name}`;
+        if (p.name === currentVal) opt.selected = true;
+        senderSelect.appendChild(opt);
+      });
+    }
+
+    // Log Source Select in Modal: #log-source
+    const logSourceSelect = document.getElementById('log-source');
+    if (logSourceSelect) {
+      logSourceSelect.innerHTML = '';
+      const customOpt = document.createElement('option');
+      customOpt.value = 'CustomApp';
+      customOpt.textContent = '⚡ CustomApp (Console Direct)';
+      logSourceSelect.appendChild(customOpt);
+
+      activeConnectedList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = `${p.icon || '🔌'} ${p.name}`;
+        logSourceSelect.appendChild(opt);
+      });
+    }
+
+    // Log Filter Source Select in Foragers tab: #log-filter-source
+    const filterSourceSelect = document.getElementById('log-filter-source');
+    if (filterSourceSelect) {
+      const currentVal = filterSourceSelect.value;
+      filterSourceSelect.innerHTML = '<option value="">Todos los Orígenes Activos</option>';
+      activeConnectedList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = `${p.icon || '🔌'} ${p.name}`;
+        if (p.name === currentVal) opt.selected = true;
+        filterSourceSelect.appendChild(opt);
+      });
     }
   }
 
