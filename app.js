@@ -57,10 +57,21 @@ class FormicaQueenConsole {
     document.getElementById('btn-new-sub').addEventListener('click', () => this.openSubModal());
     document.getElementById('btn-sub-cancel').addEventListener('click', () => this.closeSubModal());
     document.getElementById('btn-sub-save').addEventListener('click', () => this.saveSub());
+    document.getElementById('btn-test-webhook')?.addEventListener('click', () => this.testSubWebhook());
 
     document.getElementById('btn-pub-event').addEventListener('click', () => this.openEventModal());
     document.getElementById('btn-event-cancel').addEventListener('click', () => this.closeEventModal());
     document.getElementById('btn-event-pub').addEventListener('click', () => this.pubEvent());
+    document.getElementById('btn-event-dryrun')?.addEventListener('click', () => this.runEventDryRun());
+    document.getElementById('btn-format-json')?.addEventListener('click', () => this.formatEventJsonPayload());
+
+    document.getElementById('event-topic')?.addEventListener('input', () => this.updateEventMatchingPreview());
+    document.getElementById('event-payload-json')?.addEventListener('input', () => this.validateEventJsonPayload());
+
+    document.getElementById('btn-connect-provider')?.addEventListener('click', () => this.openProviderModal());
+    document.getElementById('btn-provider-close')?.addEventListener('click', () => this.closeProviderModal());
+    document.getElementById('provider-type-select')?.addEventListener('change', () => this.updateProviderSnippet());
+    document.getElementById('provider-name-input')?.addEventListener('input', () => this.updateProviderSnippet());
 
     document.getElementById('btn-new-kv').addEventListener('click', () => this.openKvModal());
     document.getElementById('btn-kv-cancel').addEventListener('click', () => this.closeKvModal());
@@ -290,16 +301,32 @@ class FormicaQueenConsole {
     subs.forEach(s => {
       const card = document.createElement('div');
       card.className = 'resource-card';
+      const isActive = s.active !== false;
       card.innerHTML = `
-        <div class="resource-card-title">${s.subscriberName}</div>
-        <div class="resource-card-sub">Topic: ${s.topic}</div>
-        <div style="font-size:0.8rem; color:var(--text-muted);">${s.targetWebhookUrl ? 'Webhook: ' + s.targetWebhookUrl : 'Internal Dispatcher'}</div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div class="resource-card-title">${s.subscriberName}</div>
+          <span class="badge-tag" style="color:${isActive ? 'var(--accent)' : 'var(--danger)'}; border-color:${isActive ? 'var(--accent)' : 'var(--danger)'}">
+            ${isActive ? '🟢 Activa' : '⏸️ Pausada'}
+          </span>
+        </div>
+        <div class="resource-card-sub" style="font-size:0.82rem; margin-top:4px;">Tópico: <code>${s.topic}</code></div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">${s.targetWebhookUrl ? 'Webhook: ' + s.targetWebhookUrl : 'Internal Dispatcher'}</div>
         <div class="resource-card-actions">
+          <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleSubActive('${s.subId}')">${isActive ? '⏸️ Pausar' : '▶️ Activar'}</button>
           <button class="btn btn-secondary btn-sm" onclick="consoleApp.editSub('${s.subId}')">✏️ Editar</button>
           <button class="btn btn-danger btn-sm" onclick="consoleApp.delSub('${s.subId}')">🗑️ Eliminar</button>
         </div>`;
       grid.appendChild(card);
     });
+  }
+
+  toggleSubActive(subId) {
+    if (this.state.subscriptions[subId]) {
+      this.state.subscriptions[subId].active = !this.state.subscriptions[subId].active;
+      this.renderAll();
+      this.persistState();
+      this.toast(`Suscripción '${this.state.subscriptions[subId].subscriberName}' ${this.state.subscriptions[subId].active ? 'activada' : 'pausada'}`);
+    }
   }
 
   renderKv() {
@@ -507,6 +534,9 @@ class FormicaQueenConsole {
 
   openSubModal(subId = null) {
     this.editingSubId = subId;
+    const testResultEl = document.getElementById('sub-webhook-test-result');
+    if (testResultEl) testResultEl.innerHTML = '';
+
     if (subId) {
       const s = this.state.subscriptions[subId];
       document.getElementById('modal-sub-title').textContent = 'Editar Suscripción';
@@ -515,25 +545,74 @@ class FormicaQueenConsole {
       document.getElementById('sub-webhook').value = s.targetWebhookUrl || '';
     } else {
       document.getElementById('modal-sub-title').textContent = 'Nueva Suscripción Pub/Sub';
-      document.getElementById('sub-topic').value = '';
+      document.getElementById('sub-topic').value = 'security.alert';
       document.getElementById('sub-name').value = '';
       document.getElementById('sub-webhook').value = '';
     }
     document.getElementById('modal-sub').classList.remove('hidden');
   }
+
   closeSubModal() { document.getElementById('modal-sub').classList.add('hidden'); }
+
+  async testSubWebhook() {
+    const url = document.getElementById('sub-webhook').value.trim();
+    const resultEl = document.getElementById('sub-webhook-test-result');
+    if (!resultEl) return;
+
+    if (!url) {
+      resultEl.innerHTML = `<span style="color:var(--danger);">⚠️ Escribe una URL de Webhook para probar.</span>`;
+      return;
+    }
+
+    resultEl.innerHTML = `<span style="color:var(--accent);">⏱️ Probando conexión POST con ${url}...</span>`;
+    const startTime = Date.now();
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'Formica-Queen-Studio/1.0' },
+        body: JSON.stringify({ event: 'formica.ping', sender: 'Queen-Studio-Tester', timestamp: new Date().toISOString() }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const duration = Date.now() - startTime;
+      if (res.ok || res.status < 400) {
+        resultEl.innerHTML = `<span style="color:var(--accent); font-weight:700;">✅ Webhook Activo (${res.status} ${res.statusText || 'OK'} — ${duration}ms)</span>`;
+      } else {
+        resultEl.innerHTML = `<span style="color:var(--danger); font-weight:700;">⚠️ Webhook respondió con código ${res.status} (${duration}ms)</span>`;
+      }
+    } catch (e) {
+      const duration = Date.now() - startTime;
+      if (e.name === 'AbortError') {
+        resultEl.innerHTML = `<span style="color:var(--danger);">❌ Timeout: El webhook tardó más de 4000ms en responder.</span>`;
+      } else {
+        resultEl.innerHTML = `<span style="color:var(--danger);">❌ Error de conexión / CORS: ${e.message || 'Fallo de red'} (${duration}ms)</span>`;
+      }
+    }
+  }
+
   saveSub() {
     const topic = document.getElementById('sub-topic').value.trim();
     const name = document.getElementById('sub-name').value.trim();
     const webhook = document.getElementById('sub-webhook').value.trim();
     if (!topic || !name) { this.toast('Tópico y Nombre son requeridos.'); return; }
     const id = this.editingSubId || `sub_${Date.now()}`;
-    this.state.subscriptions[id] = { subId: id, topic, subscriberName: name, targetWebhookUrl: webhook, active: true };
+    const existing = this.state.subscriptions[id];
+    this.state.subscriptions[id] = {
+      subId: id, topic, subscriberName: name, targetWebhookUrl: webhook || undefined,
+      active: existing ? existing.active : true,
+      createdAt: existing?.createdAt || new Date().toISOString()
+    };
     this.closeSubModal();
     this.renderAll();
     this.persistState();
     this.toast('Suscripción guardada');
   }
+
   editSub(id) { this.openSubModal(id); }
   delSub(id) {
     delete this.state.subscriptions[id];
@@ -542,20 +621,265 @@ class FormicaQueenConsole {
     this.toast('Suscripción eliminada');
   }
 
-  openEventModal() { document.getElementById('modal-event').classList.remove('hidden'); }
+  // ─── EVENT PUBLISHING & LIVE MATCHING ─────────────────────────────────────
+
+  openEventModal() {
+    const topicEl = document.getElementById('event-topic');
+    const senderEl = document.getElementById('event-sender');
+    const payloadEl = document.getElementById('event-payload-json');
+
+    if (topicEl && !topicEl.value) topicEl.value = 'security.alert';
+    if (senderEl && !senderEl.value) senderEl.value = 'Sinchlor-Honeytrap';
+    if (payloadEl && !payloadEl.value) {
+      payloadEl.value = JSON.stringify({
+        action: 'trap_triggered',
+        trapId: 'decoy_db_prod',
+        sourceIp: '192.168.1.100',
+        severity: 'critical'
+      }, null, 2);
+    }
+
+    this.validateEventJsonPayload();
+    this.updateEventMatchingPreview();
+    document.getElementById('modal-event').classList.remove('hidden');
+  }
+
   closeEventModal() { document.getElementById('modal-event').classList.add('hidden'); }
-  pubEvent() {
-    const topic = document.getElementById('event-topic').value.trim();
-    const sender = document.getElementById('event-sender').value.trim();
-    const msg = document.getElementById('event-msg').value.trim();
-    if (!topic || !msg) { this.toast('Tópico y Mensaje son requeridos.'); return; }
-    this.state.logs.unshift({ level: 'info', source: sender || 'Queen-Studio', message: `[${topic}] ${msg}`, timestamp: new Date().toISOString() });
+
+  updateEventMatchingPreview() {
+    const topic = (document.getElementById('event-topic')?.value || '').trim();
+    const previewEl = document.getElementById('event-matching-preview');
+    if (!previewEl) return;
+
+    if (!topic) {
+      previewEl.innerHTML = `<span style="color:var(--text-muted);">Escribe un tópico para ver suscriptores coincidentes en tiempo real.</span>`;
+      return;
+    }
+
+    const allSubs = Object.values(this.state.subscriptions || {}).filter(s => s.active !== false);
+    const matched = allSubs.filter(s => s.topic === '*' || s.topic === topic);
+
+    if (!matched.length) {
+      previewEl.innerHTML = `<span style="color:var(--danger); font-size:0.8rem;">⚠️ Ninguna suscripción activa coincide actualmente con el tópico '<strong>${topic}</strong>'.</span>`;
+    } else {
+      const listStr = matched.map(m => `<strong>${m.subscriberName}</strong> (${m.targetWebhookUrl ? 'Webhook' : 'Internal'})`).join(', ');
+      previewEl.innerHTML = `<span style="color:var(--accent); font-size:0.8rem;">🎯 <strong>${matched.length} suscriptor(es) coincidente(s)</strong>: ${listStr}</span>`;
+    }
+  }
+
+  validateEventJsonPayload() {
+    const raw = (document.getElementById('event-payload-json')?.value || '').trim();
+    const badgeEl = document.getElementById('json-valid-badge');
+    if (!badgeEl) return true;
+
+    if (!raw) {
+      badgeEl.textContent = 'Payload Vacío';
+      badgeEl.style.color = 'var(--text-muted)';
+      badgeEl.style.borderColor = 'var(--border)';
+      return true;
+    }
+
+    try {
+      JSON.parse(raw);
+      badgeEl.textContent = 'JSON Válido ✓';
+      badgeEl.style.color = 'var(--accent)';
+      badgeEl.style.borderColor = 'var(--accent)';
+      return true;
+    } catch (e) {
+      badgeEl.textContent = '⚠️ JSON Inválido';
+      badgeEl.style.color = 'var(--danger)';
+      badgeEl.style.borderColor = 'var(--danger)';
+      return false;
+    }
+  }
+
+  formatEventJsonPayload() {
+    const el = document.getElementById('event-payload-json');
+    if (!el) return;
+    try {
+      const parsed = JSON.parse(el.value.trim());
+      el.value = JSON.stringify(parsed, null, 2);
+      this.validateEventJsonPayload();
+      this.toast('✨ JSON formateado correctamente');
+    } catch {
+      this.toast('⚠️ No se pudo formatear: Corrige los errores de sintaxis JSON.');
+    }
+  }
+
+  runEventDryRun() {
+    const topic = (document.getElementById('event-topic')?.value || '').trim();
+    const sender = (document.getElementById('event-sender')?.value || '').trim();
+    const channel = document.getElementById('event-delivery-channel')?.value || 'direct';
+    const rawPayload = (document.getElementById('event-payload-json')?.value || '').trim();
+
+    if (!topic) { this.toast('Escribe un Tópico para simular.'); return; }
+    if (!this.validateEventJsonPayload()) { this.toast('Corrige el JSON del Payload antes de simular.'); return; }
+
+    const allSubs = Object.values(this.state.subscriptions || {}).filter(s => s.active !== false);
+    const matched = allSubs.filter(s => s.topic === '*' || s.topic === topic);
+
+    let payloadObj = rawPayload;
+    try { payloadObj = JSON.parse(rawPayload); } catch {}
+
+    const summary = [
+      `🔍 SIMULACIÓN DRY-RUN DE EVENTO PHEROMONES:`,
+      `• Tópico: ${topic}`,
+      `• Emisor: ${sender || 'Queen-Studio'}`,
+      `• Canal elegido: ${channel === 'anthill' ? '🐜 Anthill Processing Server' : '⚡ Inmediato (Consola Directa)'}`,
+      `• Suscriptores alcanzados: ${matched.length}`,
+      matched.length ? matched.map(m => `   ↳ ${m.subscriberName} [${m.targetWebhookUrl ? 'Webhook: ' + m.targetWebhookUrl : 'Interno'}]`).join('\n') : '   (Sin receptores registrados)',
+      `• Payload: ${JSON.stringify(payloadObj)}`
+    ].join('\n');
+
+    alert(summary);
+  }
+
+  async pubEvent() {
+    const topic = (document.getElementById('event-topic')?.value || '').trim();
+    const sender = (document.getElementById('event-sender')?.value || '').trim() || 'Queen-Studio';
+    const channel = document.getElementById('event-delivery-channel')?.value || 'direct';
+    const rawPayload = (document.getElementById('event-payload-json')?.value || '').trim();
+
+    if (!topic) { this.toast('El Tópico del evento es requerido.'); return; }
+    if (!this.validateEventJsonPayload()) { this.toast('El Payload JSON contiene errores de sintaxis.'); return; }
+
+    let payload = rawPayload;
+    try { payload = JSON.parse(rawPayload); } catch {}
+
+    // Find active matched subscriptions
+    const allSubs = Object.values(this.state.subscriptions || {}).filter(s => s.active !== false);
+    const matched = allSubs.filter(s => s.topic === '*' || s.topic === topic);
+    const deliveredNames = [];
+
+    if (channel === 'direct') {
+      // Direct HTTP dispatch from browser context
+      for (const sub of matched) {
+        if (sub.targetWebhookUrl) {
+          try {
+            fetch(sub.targetWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'User-Agent': 'Formica-Queen-Studio/1.0' },
+              body: JSON.stringify({ topic, sender, payload, timestamp: new Date().toISOString() })
+            }).catch(() => {});
+            deliveredNames.push(`${sub.subscriberName} (HTTP POST)`);
+          } catch {}
+        } else {
+          deliveredNames.push(`${sub.subscriberName} (Interno)`);
+        }
+      }
+    } else {
+      // Anthill server dispatch
+      this.dispatchToAnthill({ type: 'pheromone', topic, sender, payload });
+      deliveredNames.push(`Enviado a Anthill Server para ${matched.length} suscriptores`);
+    }
+
+    // Add Forager Log
+    const msg = typeof payload === 'object' ? JSON.stringify(payload) : String(payload);
+    this.state.logs.unshift({
+      level: 'info',
+      source: sender,
+      message: `[Event '${topic}'] ${msg}`,
+      timestamp: new Date().toISOString()
+    });
+
     this.closeEventModal();
     this.renderAll();
     this.persistState();
-    // Dispatch real event to Anthill for webhook delivery
-    this.dispatchToAnthill({ type: 'pheromone', topic, sender: sender || 'Queen-Studio', payload: { message: msg } });
-    this.toast(`Evento publicado en '${topic}'`);
+    this.toast(`🚀 Evento '${topic}' publicado (${matched.length} suscriptores notificados)`);
+  }
+
+  // ─── PROVIDER CONNECT MODAL ───────────────────────────────────────────────
+
+  openProviderModal() {
+    document.getElementById('modal-connect-provider').classList.remove('hidden');
+    this.updateProviderSnippet();
+  }
+
+  closeProviderModal() {
+    document.getElementById('modal-connect-provider').classList.add('hidden');
+  }
+
+  updateProviderSnippet() {
+    const type = document.getElementById('provider-type-select')?.value || 'terra-sdk';
+    const name = (document.getElementById('provider-name-input')?.value || 'mi-servicio-prod').trim();
+    const snippetEl = document.getElementById('provider-snippet-code');
+    if (!snippetEl) return;
+
+    const anthillRepo = this.anthillRepo || `${this.currentUser || 'user'}/formica-anthill`;
+
+    let code = '';
+    if (type === 'terra-sdk') {
+      code = `// Formica SDK (Node.js / TypeScript)
+import { Formica } from 'terra-formica';
+
+const formica = new Formica({
+  githubToken: process.env.FORMICA_PAT,
+  anthillRepo: '${anthillRepo}'
+});
+
+// 🍃 Enviar log de telemetría a Foragers
+await formica.emitLog('info', '${name}', 'Servicio iniciado correctamente');
+
+// 🧪 Publicar evento Pub/Sub en Pheromones
+await formica.emit('user.signup', '${name}', { userId: 'usr_99', role: 'customer' });`;
+    } else if (type === 'node-fetch') {
+      code = `// cURL / Node.js Native HTTP POST (sin SDK)
+await fetch('https://api.github.com/repos/${anthillRepo}/dispatches', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_GITHUB_PAT',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    event_type: 'formica-ingest',
+    client_payload: {
+      type: 'log',
+      level: 'info',
+      source: '${name}',
+      message: 'Operación ejecutada con éxito'
+    }
+  })
+});`;
+    } else if (type === 'python') {
+      code = `# Python (requests)
+import requests
+
+requests.post(
+    'https://api.github.com/repos/${anthillRepo}/dispatches',
+    headers={
+        'Authorization': 'Bearer YOUR_GITHUB_PAT',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'event_type': 'formica-ingest',
+        'client_payload': {
+            'type': 'log',
+            'level': 'info',
+            'source': '${name}',
+            'message': 'Proceso completado'
+        }
+    }
+)`;
+    } else if (type === 'azure') {
+      code = `# Azure Functions / Event Grid (Python / Node.js)
+import requests
+
+def main(mytimer):
+    requests.post(
+        'https://api.github.com/repos/${anthillRepo}/dispatches',
+        headers={'Authorization': 'Bearer YOUR_GITHUB_PAT'},
+        json={'event_type': 'formica-ingest', 'client_payload': {'type': 'pheromone', 'topic': 'azure.timer', 'sender': '${name}', 'payload': {'status': 'ok'}}}
+    )`;
+    } else if (type === 'slack-discord') {
+      code = `# Configuración de Webhook de Discord / Slack en Formica
+1. En Formica Queen Studio, ve a la pestaña 🧪 Pheromones -> + Nueva Suscripción
+2. Tópico: 'security.alert' (o cualquier evento que quieras recibir)
+3. Nombre: '${name}-Webhook'
+4. Webhook Target URL: Pega tu Discord Webhook / Slack Incoming Webhook URL
+5. Pulsa 🧪 Probar Webhook para verificar la respuesta HTTP!`;
+    }
+
+    snippetEl.textContent = code;
   }
 
   // ─── CHAMBERS (REDIS-LIKE MULTI-KEY DB) ───────────────────────────────────
