@@ -302,6 +302,7 @@
         <label>Tipo de Provider / Framework:</label>
         <select id="provider-type-select" style="width:100%; padding:8px 12px; border-radius:6px; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border);">
           <option value="terra-sdk">Terra SDK (Sinchlor, Lumina, Ballom, Rolla, Termes)</option>
+          <option value="aws">AWS Lambda / EventBridge / SNS</option>
           <option value="node-fetch">Node.js / Express / Backend Custom (cURL / HTTP)</option>
           <option value="python">Python (FastAPI, Django, Flask)</option>
           <option value="azure">Azure Functions / Event Grid</option>
@@ -316,8 +317,9 @@
         <label>Código de Integración Generado:</label>
         <pre id="provider-snippet-code" style="background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:0.75rem; color:var(--accent); font-family:monospace; overflow-x:auto; white-space:pre-wrap; margin:0; max-height:200px;"></pre>
       </div>
-      <div class="modal-actions">
-        <button id="btn-provider-close" class="btn btn-primary">Cerrar</button>
+      <div class="modal-actions" style="display:flex; justify-content:space-between; width:100%;">
+        <button id="btn-register-provider" class="btn btn-accent" type="button">✨ Registrar & Conectar Provider</button>
+        <button id="btn-provider-close" class="btn btn-secondary">Cerrar</button>
       </div>
     </div>
   </div>

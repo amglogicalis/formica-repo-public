@@ -70,6 +70,7 @@ class FormicaQueenConsole {
 
     document.getElementById('btn-connect-provider')?.addEventListener('click', () => this.openProviderModal());
     document.getElementById('btn-provider-close')?.addEventListener('click', () => this.closeProviderModal());
+    document.getElementById('btn-register-provider')?.addEventListener('click', () => this.registerProvider());
     document.getElementById('provider-type-select')?.addEventListener('change', () => this.updateProviderSnippet());
     document.getElementById('provider-name-input')?.addEventListener('input', () => this.updateProviderSnippet());
 
@@ -628,15 +629,10 @@ class FormicaQueenConsole {
     const senderEl = document.getElementById('event-sender');
     const payloadEl = document.getElementById('event-payload-json');
 
-    if (topicEl && !topicEl.value) topicEl.value = 'security.alert';
-    if (senderEl && !senderEl.value) senderEl.value = 'Sinchlor-Honeytrap';
+    if (topicEl && !topicEl.value) topicEl.value = '';
+    if (senderEl && !senderEl.value) senderEl.value = '';
     if (payloadEl && !payloadEl.value) {
-      payloadEl.value = JSON.stringify({
-        action: 'trap_triggered',
-        trapId: 'decoy_db_prod',
-        sourceIp: '192.168.1.100',
-        severity: 'critical'
-      }, null, 2);
+      payloadEl.value = '{\n  \n}';
     }
 
     this.validateEventJsonPayload();
@@ -799,6 +795,44 @@ class FormicaQueenConsole {
     document.getElementById('modal-connect-provider').classList.add('hidden');
   }
 
+  registerProvider() {
+    const type = document.getElementById('provider-type-select')?.value || 'terra-sdk';
+    const nameInput = (document.getElementById('provider-name-input')?.value || '').trim();
+    const typeLabelMap = {
+      'terra-sdk': 'Terra-SDK-App',
+      'aws': 'AWS-Lambda',
+      'node-fetch': 'Node-Backend',
+      'python': 'Python-Service',
+      'azure': 'Azure-Function',
+      'slack-discord': 'Webhook-Relay'
+    };
+    const providerName = nameInput || typeLabelMap[type] || 'Custom-Provider';
+
+    // Log registration signal to state and Anthill
+    const logItem = {
+      level: 'info',
+      source: providerName,
+      message: `🔌 Provider '${providerName}' [${type.toUpperCase()}] registrado mediante Asistente de Conexión`,
+      timestamp: new Date().toISOString()
+    };
+
+    this.state.logs.unshift(logItem);
+    this.dispatchToAnthill({ type: 'log', level: 'info', source: providerName, message: logItem.message });
+
+    this.closeProviderModal();
+    this.renderAll();
+    this.persistState();
+
+    // Select the newly registered provider in Foragers log filter
+    const sourceSelect = document.getElementById('log-filter-source');
+    if (sourceSelect) {
+      sourceSelect.value = providerName;
+      this.renderLogs();
+    }
+
+    this.toast(`🔌 Provider '${providerName}' registrado con éxito. ¡Ya visible en Foragers!`);
+  }
+
   updateProviderSnippet() {
     const type = document.getElementById('provider-type-select')?.value || 'terra-sdk';
     const name = (document.getElementById('provider-name-input')?.value || 'mi-servicio-prod').trim();
@@ -822,6 +856,25 @@ await formica.emitLog('info', '${name}', 'Servicio iniciado correctamente');
 
 // 🧪 Publicar evento Pub/Sub en Pheromones
 await formica.emit('user.signup', '${name}', { userId: 'usr_99', role: 'customer' });`;
+    } else if (type === 'aws') {
+      code = `// AWS Lambda (Node.js / Python / EventBridge)
+import requests # o fetch en Node.js
+
+url = "https://api.github.com/repos/${anthillRepo}/dispatches"
+headers = {
+    "Authorization": "Bearer YOUR_GITHUB_PAT",
+    "Content-Type": "application/json"
+}
+payload = {
+    "event_type": "formica-ingest",
+    "client_payload": {
+        "type": "log",
+        "level": "info",
+        "source": "${name}",
+        "message": "AWS Lambda triggered successfully"
+    }
+}
+requests.post(url, headers=headers, json=payload)`;
     } else if (type === 'node-fetch') {
       code = `// cURL / Node.js Native HTTP POST (sin SDK)
 await fetch('https://api.github.com/repos/${anthillRepo}/dispatches', {
