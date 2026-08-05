@@ -353,21 +353,32 @@ class FormicaQueenConsole {
     if (terraGrid) {
       terraGrid.innerHTML = '';
       this.TERRA_APPS.forEach(app => {
-        const isConnected = !!connected[app.id];
+        const providerObj = connected[app.id] || Object.values(connected).find(p => p.name === app.name);
+        const isConnected = !!providerObj;
+        const isActive = providerObj ? (providerObj.active !== false) : false;
+
         const card = document.createElement('div');
         card.className = 'resource-card';
         card.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <div class="resource-card-title" style="font-size:1.05rem;">${app.icon} ${app.name}</div>
-            <span class="badge-tag" style="color:${isConnected ? 'var(--accent)' : 'var(--text-muted)'}; border-color:${isConnected ? 'var(--accent)' : 'var(--border)'}">
-              ${isConnected ? '🔌 Conectada' : '⚪ No Conectada'}
+            <span class="badge-tag" style="color:${!isConnected ? 'var(--text-muted)' : (isActive ? 'var(--accent)' : 'var(--danger)')}; border-color:${!isConnected ? 'var(--border)' : (isActive ? 'var(--accent)' : 'var(--danger)')}">
+              ${!isConnected ? '⚪ No Conectada' : (isActive ? '🟢 Conectada' : '⏸️ Pausada')}
             </span>
           </div>
           <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">App Oficial del Ecosistema Terra (Local)</div>
-          <div class="resource-card-actions">
+          <div class="resource-card-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
             <button class="btn ${isConnected ? 'btn-secondary' : 'btn-accent'} btn-sm" onclick="consoleApp.connectTerraApp('${app.id}')">
-              ${isConnected ? '🔄 Reconectar App' : '🔌 Conectar App (1-Clic)'}
+              ${isConnected ? '🔄 Reconectar' : '🔌 Conectar'}
             </button>
+            ${isConnected ? `
+              <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleProviderActive('${providerObj.id}')">
+                ${isActive ? '⏸️ Pausar' : '▶️ Activar'}
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="consoleApp.disconnectProvider('${providerObj.id}')">
+                🗑️ Desconectar
+              </button>
+            ` : ''}
           </div>`;
         terraGrid.appendChild(card);
       });
@@ -385,14 +396,21 @@ class FormicaQueenConsole {
         customProviders.forEach(p => {
           const card = document.createElement('div');
           card.className = 'resource-card';
+          const isActive = p.active !== false;
+
           card.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <strong style="color:var(--primary); font-size:1rem;">${p.icon || '⚡'} ${p.name}</strong>
-              <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary);">${p.type}</span>
+              <span class="badge-tag" style="background:${isActive ? 'rgba(16,185,129,0.15)' : 'rgba(244,63,94,0.15)'}; color:${isActive ? 'var(--accent)' : 'var(--danger)'};">
+                ${isActive ? '🟢 Conectado' : '⏸️ Pausado'}
+              </span>
             </div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Conectado: ${new Date(p.connectedAt).toLocaleDateString()}</div>
-            <div class="resource-card-actions" style="display:flex; gap:8px;">
-              <button class="btn btn-secondary btn-sm" onclick="consoleApp.openOnboardingModalById('${p.id}')">📖 Guía Conexión</button>
+            <div class="resource-card-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="consoleApp.openOnboardingModalById('${p.id}')">📖 Guía</button>
+              <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleProviderActive('${p.id}')">
+                ${isActive ? '⏸️ Pausar' : '▶️ Activar'}
+              </button>
               <button class="btn btn-danger btn-sm" onclick="consoleApp.disconnectProvider('${p.id}')">🗑️ Desconectar</button>
             </div>`;
           customGrid.appendChild(card);
@@ -401,10 +419,25 @@ class FormicaQueenConsole {
     }
   }
 
+  async toggleProviderActive(providerId) {
+    if (this.state.connectedProviders && this.state.connectedProviders[providerId]) {
+      const p = this.state.connectedProviders[providerId];
+      p.active = (p.active === false) ? true : false;
+      if (!p.active) {
+        p.disconnectedAt = new Date().toISOString();
+      } else {
+        delete p.disconnectedAt;
+      }
+      this.renderAll();
+      this.persistState();
+      this.toast(`Provider '${p.name}' ${p.active ? '🟢 re-conectado' : '⏸️ pausado'}`);
+    }
+  }
+
   async disconnectProvider(providerId) {
     if (this.state.connectedProviders && this.state.connectedProviders[providerId]) {
       const name = this.state.connectedProviders[providerId].name;
-      const confirmed = await this.confirmModal(`¿Estás seguro de que deseas desconectar el provider '${name}'?`, {
+      const confirmed = await this.confirmModal(`¿Estás seguro de que deseas desconectar y eliminar el provider '${name}'?`, {
         title: 'Desconectar Provider',
         icon: '🔌',
         acceptText: 'Sí, Desconectar'
