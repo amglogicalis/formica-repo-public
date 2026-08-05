@@ -56,6 +56,7 @@
         <button class="tab-btn" data-tab="tab-foragers">🍃 Foragers (Telemetría)</button>
         <button class="tab-btn" data-tab="tab-soldiers">🛡️ Soldiers (WAF Guard)</button>
         <button class="tab-btn" data-tab="tab-legionarys">🌾 Legionarys (Purga Universal)</button>
+        <button class="tab-btn" data-tab="tab-anthill">🐜 Anthill (Server)</button>
       </nav>
 
       <!-- Main Content Area -->
@@ -165,6 +166,20 @@
               Haz clic en 'Simular Purga' para detectar recursos caducados. Cada adaptador se desplegará organizado por sus Grupos de Recursos específicos con casilleros individuales.
             </p>
             <div id="purge-report-items" class="purge-accordion-container"></div>
+          </div>
+        </section>
+
+        <!-- 🐜 TAB 7: ANTHILL (SERVER) -->
+        <section id="tab-anthill" class="tab-content">
+          <div class="section-header">
+            <h2>🐜 Anthill — Event Processing Server</h2>
+            <div class="action-buttons">
+              <button id="btn-wake-anthill" class="btn btn-accent">⚡ Despertar Anthill</button>
+              <button id="btn-refresh-anthill" class="btn btn-secondary">🔄 Actualizar Estado</button>
+            </div>
+          </div>
+          <div id="anthill-content">
+            <p style="color:var(--text-muted);">Conecta tu bóveda para inicializar el Anthill.</p>
           </div>
         </section>
       </main>
