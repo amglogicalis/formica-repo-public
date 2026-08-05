@@ -89,6 +89,9 @@ class FormicaQueenConsole {
     document.getElementById('btn-hub-tab-custom')?.addEventListener('click', () => this.switchHubTab('custom'));
     document.getElementById('btn-hub-connect-custom')?.addEventListener('click', () => this.connectCustomProvider());
 
+    document.getElementById('btn-onboarding-close')?.addEventListener('click', () => this.closeOnboardingModal());
+    document.getElementById('btn-onboarding-copy')?.addEventListener('click', () => this.copyOnboardingSnippet());
+
     document.getElementById('btn-new-kv').addEventListener('click', () => this.openKvModal());
     document.getElementById('btn-kv-cancel').addEventListener('click', () => this.closeKvModal());
     document.getElementById('btn-kv-save').addEventListener('click', () => this.saveKv());
@@ -385,7 +388,8 @@ class FormicaQueenConsole {
               <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary);">${p.type}</span>
             </div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Conectado: ${new Date(p.connectedAt).toLocaleDateString()}</div>
-            <div class="resource-card-actions">
+            <div class="resource-card-actions" style="display:flex; gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="consoleApp.openOnboardingModalById('${p.id}')">📖 Guía Conexión</button>
               <button class="btn btn-danger btn-sm" onclick="consoleApp.disconnectProvider('${p.id}')">🗑️ Desconectar</button>
             </div>`;
           customGrid.appendChild(card);
@@ -441,14 +445,16 @@ class FormicaQueenConsole {
     }
 
     const customId = `custom_${nameInput.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-    this.state.connectedProviders = this.state.connectedProviders || {};
-    this.state.connectedProviders[customId] = {
+    const providerObj = {
       id: customId,
       name: nameInput,
       icon: '⚡',
       type: `external-${type}`,
       connectedAt: new Date().toISOString()
     };
+
+    this.state.connectedProviders = this.state.connectedProviders || {};
+    this.state.connectedProviders[customId] = providerObj;
 
     const msg = `🔌 Provider Personalizado '${nameInput}' [${type.toUpperCase()}] registrado y conectado.`;
     this.state.logs.unshift({
@@ -463,7 +469,140 @@ class FormicaQueenConsole {
     document.getElementById('hub-custom-name').value = '';
     this.renderAll();
     this.persistState();
-    this.toast(`✅ Provider '${nameInput}' registrado y conectado`);
+    this.toast(`✅ Provider '${nameInput}' registrado correctamente`);
+
+    // 🚀 ALWAYS OPEN ONBOARDING INTEGRATION GUIDE MODAL UPON CREATION
+    this.openOnboardingModal(providerObj);
+  }
+
+  openOnboardingModalById(providerId) {
+    if (this.state.connectedProviders && this.state.connectedProviders[providerId]) {
+      this.openOnboardingModal(this.state.connectedProviders[providerId]);
+    }
+  }
+
+  openOnboardingModal(provider) {
+    const modal = document.getElementById('modal-provider-onboarding');
+    const title = document.getElementById('onboarding-provider-title');
+    const badge = document.getElementById('onboarding-provider-badge');
+    const snippetPre = document.getElementById('onboarding-code-snippet');
+
+    if (!modal || !provider) return;
+
+    title.textContent = `🔌 Guía de Conexión — ${provider.name}`;
+    badge.textContent = provider.type || 'external';
+    snippetPre.textContent = this.generateOnboardingSnippet(provider);
+
+    modal.classList.remove('hidden');
+  }
+
+  closeOnboardingModal() {
+    document.getElementById('modal-provider-onboarding')?.classList.add('hidden');
+  }
+
+  copyOnboardingSnippet() {
+    const code = document.getElementById('onboarding-code-snippet')?.textContent || '';
+    if (code) {
+      navigator.clipboard.writeText(code);
+      this.toast('📋 Snippet copiado al portapapeles');
+    }
+  }
+
+  generateOnboardingSnippet(provider) {
+    const name = provider.name || 'Mi-Provider';
+    const type = (provider.type || '').replace('external-', '');
+
+    if (type === 'node-fetch' || type === 'express') {
+      return `// 🐜 FORMICA SDK (Node.js / Express Backend)
+import { Formica, createExpressWaf } from 'terra-formica';
+
+const formica = new Formica({
+  githubToken: process.env.FORMICA_PAT || 'ghp_TU_PAT',
+  storageRepo: 'amglogicalis/.formica-storage',
+  anthillRepo: 'amglogicalis/formica-anthill'
+});
+
+// 🛡️ 1. Proteger servidor con WAF Guard Firewall
+app.use(createExpressWaf(formica, { appName: '${name}' }));
+
+// 🍃 2. Emitir log telemétrico a Foragers
+await formica.log('info', '${name}', 'Servicio iniciado y escuchando peticiones');
+
+// 🧪 3. Publicar evento a Pheromones Bus
+await formica.publishEvent('user.signup', '${name}', { userId: 'usr_99' });`;
+    }
+
+    if (type === 'python') {
+      return `# 🐜 FORMICA TELEMETRY (Python FastAPI / Flask / Django)
+import requests
+import json
+
+FORMICA_PAT = "TU_GITHUB_PAT_AQUI"
+ANTHILL_URL = "https://api.github.com/repos/amglogicalis/formica-anthill/dispatches"
+
+def emit_formica_telemetry(level: str, message: str, payload: dict = None):
+    headers = {
+        "Authorization": f"token {FORMICA_PAT}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    body = {
+        "event_type": "formica-ingest",
+        "client_payload": {
+            "type": "log",
+            "level": level,
+            "source": "${name}",
+            "message": message,
+            "payload": payload or {}
+        }
+    }
+    requests.post(ANTHILL_URL, data=json.dumps(body), headers=headers)
+
+# Ejemplo de uso en tu app Python:
+emit_formica_telemetry("info", "Petición recibida en endpoint de ${name}")`;
+    }
+
+    if (type === 'aws') {
+      return `// 🐜 FORMICA AWS LAMBDA TELEMETRY (Node.js AWS SDK)
+const https = require('https');
+
+exports.handler = async (event) => {
+    const payload = JSON.stringify({
+        event_type: 'formica-ingest',
+        client_payload: {
+            type: 'log',
+            level: 'info',
+            source: '${name}',
+            message: \`AWS Lambda ejecutada con exito (Request ID: \${event.requestContext?.requestId})\`
+        }
+    });
+
+    const req = https.request('https://api.github.com/repos/amglogicalis/formica-anthill/dispatches', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'token ' + process.env.FORMICA_PAT,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Formica-AWS-Lambda'
+        }
+    });
+    req.write(payload);
+    req.end();
+};`;
+    }
+
+    // Default cURL / Webhook / Slack / Discord
+    return `# 🐜 FORMICA TELEMETRY (cURL / HTTP POST Webhook)
+curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatches \\
+  -H "Authorization: token TU_GITHUB_PAT" \\
+  -H "Accept: application/vnd.github.v3+json" \\
+  -d '{
+    "event_type": "formica-ingest",
+    "client_payload": {
+      "type": "log",
+      "level": "info",
+      "source": "${name}",
+      "message": "Peticion procesada correctamente desde ${name}"
+    }
+  }'`;
   }
 
   populateConnectedProviderSelects() {
