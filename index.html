@@ -616,6 +616,20 @@
     </div>
   </div>
 
+  <!-- Modal 8: Custom Styled Confirmation Dialog -->
+  <div id="modal-confirm" class="modal-backdrop hidden">
+    <div class="modal-box glass-card" style="max-width: 440px; text-align: center;">
+      <div style="font-size: 2.5rem; margin-bottom: 8px;" id="confirm-modal-icon">⚠️</div>
+      <h3 id="confirm-modal-title" style="margin: 0 0 10px 0; color: var(--primary);">Confirmar Acción</h3>
+      <p id="confirm-modal-message" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.4;"></p>
+
+      <div class="modal-actions" style="justify-content: center; gap: 12px;">
+        <button id="btn-confirm-cancel" class="btn btn-secondary" style="min-width: 110px;">Cancelar</button>
+        <button id="btn-confirm-accept" class="btn btn-danger" style="min-width: 110px;">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 

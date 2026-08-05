@@ -399,9 +399,16 @@ class FormicaQueenConsole {
     }
   }
 
-  disconnectProvider(providerId) {
+  async disconnectProvider(providerId) {
     if (this.state.connectedProviders && this.state.connectedProviders[providerId]) {
       const name = this.state.connectedProviders[providerId].name;
+      const confirmed = await this.confirmModal(`¿Estás seguro de que deseas desconectar el provider '${name}'?`, {
+        title: 'Desconectar Provider',
+        icon: '🔌',
+        acceptText: 'Sí, Desconectar'
+      });
+      if (!confirmed) return;
+
       delete this.state.connectedProviders[providerId];
       this.renderAll();
       this.persistState();
@@ -830,25 +837,77 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       .replace(/'/g, '&#039;');
   }
 
-  clearLogsForProvider(sourceName) {
-    if (!sourceName) return;
-    const prevCount = (this.state.logs || []).length;
-    this.state.logs = (this.state.logs || []).filter(l => (l.source || 'Unknown') !== sourceName);
-    const removed = prevCount - this.state.logs.length;
+  confirmModal(message, { title = 'Confirmar Acción', icon = '🗑️', acceptText = 'Aceptar', cancelText = 'Cancelar', isDanger = true } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('modal-confirm');
+      const iconEl = document.getElementById('confirm-modal-icon');
+      const titleEl = document.getElementById('confirm-modal-title');
+      const messageEl = document.getElementById('confirm-modal-message');
+      const btnAccept = document.getElementById('btn-confirm-accept');
+      const btnCancel = document.getElementById('btn-confirm-cancel');
 
-    this.renderAll();
-    this.persistState();
-    this.toast(`🗑️ ${removed} logs de '${sourceName}' eliminados`);
+      if (!modal) {
+        resolve(window.confirm(message));
+        return;
+      }
+
+      iconEl.textContent = icon;
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      btnAccept.textContent = acceptText;
+      btnCancel.textContent = cancelText;
+
+      btnAccept.className = isDanger ? 'btn btn-danger' : 'btn btn-primary';
+
+      const onAccept = () => { cleanup(); resolve(true); };
+      const onCancel = () => { cleanup(); resolve(false); };
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        btnAccept.removeEventListener('click', onAccept);
+        btnCancel.removeEventListener('click', onCancel);
+      };
+
+      btnAccept.addEventListener('click', onAccept);
+      btnCancel.addEventListener('click', onCancel);
+
+      modal.classList.remove('hidden');
+    });
   }
 
-  clearAllLogs() {
+  async clearLogsForProvider(sourceName) {
+    if (!sourceName) return;
+    const providerLogs = (this.state.logs || []).filter(l => (l.source || 'Unknown') === sourceName);
+    if (!providerLogs.length) {
+      this.toast(`No hay logs para '${sourceName}'`);
+      return;
+    }
+
+    const confirmed = await this.confirmModal(
+      `¿Deseas eliminar los ${providerLogs.length} logs de telemetría del provider '${sourceName}'?`,
+      { title: 'Limpiar Logs de Provider', icon: '🍃', acceptText: 'Limpiar Logs' }
+    );
+    if (!confirmed) return;
+
+    this.state.logs = (this.state.logs || []).filter(l => (l.source || 'Unknown') !== sourceName);
+    this.renderAll();
+    this.persistState();
+    this.toast(`🗑️ ${providerLogs.length} logs de '${sourceName}' eliminados`);
+  }
+
+  async clearAllLogs() {
     const total = (this.state.logs || []).length;
     if (!total) {
       this.toast('No hay logs registrados para eliminar');
       return;
     }
 
-    if (confirm(`¿Eliminar TODOS los ${total} logs de telemetría de Foragers?`)) {
+    const confirmed = await this.confirmModal(
+      `¿Deseas eliminar TODOS los ${total} logs de telemetría de Foragers registrados en la consola?`,
+      { title: 'Limpiar Todos los Logs', icon: '🗑️', acceptText: 'Eliminar Todos' }
+    );
+
+    if (confirmed) {
       this.state.logs = [];
       this.renderAll();
       this.persistState();
