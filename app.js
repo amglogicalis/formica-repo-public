@@ -16,10 +16,15 @@ class FormicaQueenConsole {
     this.editingWafId = null;
     this.editingAdapterId = null;
     this.editingChamberId = null;
-    this.editingEntryIndex = null; // For inline chamber key editor
+    this.editingEntryIndex = null;
     this.currentChamberEntries = [];
     this.currentAdapterGroups = [];
     this.simulatedAdapterGroups = [];
+
+    // Anthill
+    this.anthillRepo = null;
+    this.anthillStatus = null;
+    this.anthillRuns = [];
 
     this.init();
   }
@@ -77,6 +82,9 @@ class FormicaQueenConsole {
 
     document.getElementById('btn-purge-dryrun').addEventListener('click', () => this.runPurgeDryRun());
     document.getElementById('btn-purge-execute').addEventListener('click', () => this.executeSelectedPurge());
+
+    document.getElementById('btn-wake-anthill').addEventListener('click', () => this.wakeAnthill());
+    document.getElementById('btn-refresh-anthill').addEventListener('click', () => this.refreshAnthillStatus());
   }
 
   // ─── AUTH ─────────────────────────────────────────────────────────────────
@@ -95,6 +103,7 @@ class FormicaQueenConsole {
       localStorage.setItem('formica_gh_token', token);
       this.showConnectedState();
       await this.loadColonyState();
+      this.initAnthill(); // Non-blocking: check/create anthill repo
       this.toast(`¡Bienvenido @${this.currentUser}! Bóveda conectada.`);
     } catch (e) {
       this.toast(e.message || 'Error al conectar con GitHub API');
@@ -264,7 +273,9 @@ class FormicaQueenConsole {
     this.renderLogs();
     this.renderWaf();
     this.renderAdapters();
+    this.renderAnthill();
   }
+
 
   renderSubs() {
     const grid = document.getElementById('subs-grid');
@@ -462,6 +473,8 @@ class FormicaQueenConsole {
     this.closeEventModal();
     this.renderAll();
     this.persistState();
+    // Dispatch real event to Anthill for webhook delivery
+    this.dispatchToAnthill({ type: 'pheromone', topic, sender: sender || 'Queen-Studio', payload: { message: msg } });
     this.toast(`Evento publicado en '${topic}'`);
   }
 
@@ -558,6 +571,7 @@ class FormicaQueenConsole {
     this.renderAddedChamberEntriesList();
   }
 
+
   renderAddedChamberEntriesList() {
     const container = document.getElementById('chamber-added-entries-list');
     container.innerHTML = '';
@@ -574,27 +588,43 @@ class FormicaQueenConsole {
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'margin-bottom:6px;';
 
-      // Main row
+      // Main row — two-line layout to avoid horizontal squeeze
       const row = document.createElement('div');
       row.className = 'added-group-row';
-      row.style.cssText = isEditing ? 'border-bottom-left-radius:0; border-bottom-right-radius:0; border-bottom: 1px solid var(--primary);' : '';
-      row.innerHTML = `
-        <div style="flex:1; min-width:0; overflow:hidden;">
-          <strong>🔑 ${e.key}</strong>
-          <span style="color:var(--text-muted); font-size:0.78rem; margin-left:6px;">${JSON.stringify(e.value)}</span>
-          <span class="badge-tag" style="margin-left:6px; color:${isExp ? 'var(--danger)' : 'var(--accent)'}">
-            ${isExp ? '⚠️ EXPIRADO' : (e.expiresAt ? '⏱️ TTL' : '♾️ PERMANENTE')}
-          </span>
-        </div>
+      row.style.cssText = `
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        ${isEditing ? 'border-bottom-left-radius:0; border-bottom-right-radius:0; border-bottom: 1px solid var(--primary);' : ''}
+      `;
+
+      // Line 1: key name + TTL badge + action buttons
+      const line1 = document.createElement('div');
+      line1.style.cssText = 'display:flex; align-items:center; gap:6px;';
+      line1.innerHTML = `
+        <strong style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">🔑 ${e.key}</strong>
+        <span class="badge-tag" style="flex-shrink:0; color:${isExp ? 'var(--danger)' : 'var(--accent)'}; border-color:${isExp ? 'var(--danger)' : 'var(--accent)'}">
+          ${isExp ? '⚠️ EXPIRADO' : (e.expiresAt ? '⏱️ TTL' : '♾️')}
+        </span>
         <div style="display:flex; gap:4px; flex-shrink:0;">
           <button class="btn btn-secondary btn-sm" onclick="consoleApp.openEntryInlineEdit(${idx})" type="button">
-            ${isEditing ? '✖ Cerrar' : '✏️'}
+            ${isEditing ? '✖' : '✏️'}
           </button>
           <button class="btn btn-danger btn-sm" onclick="consoleApp.removeChamberEntryFromBuilder(${idx})" type="button">🗑️</button>
         </div>`;
+
+      // Line 2: value preview, truncated with ellipsis
+      const line2 = document.createElement('div');
+      const rawPreview = typeof e.value === 'object' ? JSON.stringify(e.value) : String(e.value);
+      line2.style.cssText = 'font-size:0.77rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:monospace; padding: 0 2px;';
+      line2.title = rawPreview; // full value on hover
+      line2.textContent = rawPreview;
+
+      row.appendChild(line1);
+      row.appendChild(line2);
       wrapper.appendChild(row);
 
-      // Inline edit panel
+      // Inline edit panel — values set via .value to avoid HTML quoting issues
       if (isEditing) {
         const panel = document.createElement('div');
         panel.style.cssText = `
@@ -604,31 +634,46 @@ class FormicaQueenConsole {
           border-radius: 0 0 8px 8px;
           padding: 12px;
         `;
+
+        // Build the panel HTML structure (no value attributes — set via JS below)
         panel.innerHTML = `
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
             <div>
               <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Clave (Key):</label>
-              <input type="text" id="inline-key-${idx}" value="${e.key}" style="width:100%; box-sizing:border-box;" />
+              <input type="text" id="inline-key-${idx}" style="width:100%; box-sizing:border-box;" />
             </div>
             <div>
               <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Valor (Value / JSON):</label>
-              <input type="text" id="inline-val-${idx}" value="${typeof e.value === 'object' ? JSON.stringify(e.value) : e.value}" style="width:100%; box-sizing:border-box;" />
+              <input type="text" id="inline-val-${idx}" style="width:100%; box-sizing:border-box;" />
             </div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-end;">
             <div style="flex:1;">
               <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">TTL en Segundos (0 = Permanente):</label>
-              <input type="number" id="inline-ttl-${idx}" value="${e.ttlSeconds || 0}" style="width:100%; box-sizing:border-box;" />
+              <input type="number" id="inline-ttl-${idx}" style="width:100%; box-sizing:border-box;" />
             </div>
-            <button class="btn btn-primary btn-sm" onclick="consoleApp.saveEntryInlineEdit(${idx})" type="button" style="height:38px; padding: 0 16px;">💾 Guardar</button>
+            <button class="btn btn-primary btn-sm" onclick="consoleApp.saveEntryInlineEdit(${idx})" type="button" style="height:38px; padding:0 16px;">💾 Guardar</button>
             <button class="btn btn-secondary btn-sm" onclick="consoleApp.openEntryInlineEdit(${idx})" type="button" style="height:38px;">✖ Cerrar</button>
           </div>`;
+
         wrapper.appendChild(panel);
+
+        // Set input values safely via JS (avoids JSON quote escaping issues in HTML attributes)
+        requestAnimationFrame(() => {
+          const keyInput = document.getElementById(`inline-key-${idx}`);
+          const valInput = document.getElementById(`inline-val-${idx}`);
+          const ttlInput = document.getElementById(`inline-ttl-${idx}`);
+          if (keyInput) keyInput.value = e.key;
+          if (valInput) valInput.value = typeof e.value === 'object' ? JSON.stringify(e.value, null, 2) : String(e.value);
+          if (ttlInput) ttlInput.value = e.ttlSeconds || 0;
+        });
       }
 
       container.appendChild(wrapper);
     });
   }
+
+
 
   saveKv() {
     const name = document.getElementById('chamber-name').value.trim();
@@ -672,6 +717,8 @@ class FormicaQueenConsole {
     this.closeLogModal();
     this.renderAll();
     this.persistState();
+    // Also send to Anthill for real-time ingestion
+    this.dispatchToAnthill({ type: 'log', level, source, message });
     this.toast('Log enviado a Foragers');
   }
 
@@ -940,6 +987,371 @@ class FormicaQueenConsole {
     container.appendChild(t);
     setTimeout(() => t.remove(), 3500);
   }
+
+  // ─── ANTHILL ──────────────────────────────────────────────────────────────
+
+  get _ghHeaders() {
+    return {
+      'Authorization': `Bearer ${this.token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'Formica-Queen-Studio'
+    };
+  }
+
+  async initAnthill() {
+    if (!this.token || !this.currentUser) return;
+    const repoName = 'formica-anthill';
+    const fullName = `${this.currentUser}/${repoName}`;
+
+    // Check if repo exists
+    const check = await fetch(`https://api.github.com/repos/${fullName}`, { headers: this._ghHeaders });
+
+    if (!check.ok) {
+      // Create repo
+      this.toast('🐜 Creando formica-anthill...');
+      const create = await fetch('https://api.github.com/user/repos', {
+        method: 'POST', headers: this._ghHeaders,
+        body: JSON.stringify({
+          name: repoName,
+          description: '🐜 Formica Anthill — Personal Event Processing Server',
+          private: false, auto_init: true
+        })
+      });
+      if (!create.ok) { this.toast('No se pudo crear formica-anthill'); return; }
+      await new Promise(r => setTimeout(r, 2500)); // wait for GitHub to init
+      await this.pushAnthillFiles(fullName);
+      await this.setAnthillVars(fullName);
+      this.toast('🐜 Anthill creado y configurado en tu cuenta GitHub!');
+    } else {
+      await this.setAnthillVars(fullName); // ensure vars are current
+    }
+
+    this.anthillRepo = fullName;
+    await this.refreshAnthillStatus();
+  }
+
+  async pushAnthillFiles(fullName) {
+    const workflowYml = `name: Formica Anthill — Event Processing Server
+
+on:
+  repository_dispatch:
+    types: [formica-ingest]
+
+concurrency:
+  group: anthill-server
+  cancel-in-progress: false
+
+jobs:
+  anthill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: \${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Anthill Server
+        env:
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          FORMICA_TOKEN: \${{ vars.FORMICA_TOKEN }}
+          FORMICA_STORAGE_REPO: \${{ vars.FORMICA_STORAGE_REPO }}
+          INITIAL_PAYLOAD: \${{ toJson(github.event.client_payload) }}
+          ANTHILL_REPO: \${{ github.repository }}
+          IDLE_TIMEOUT_MIN: '10'
+          POLL_INTERVAL_SEC: '20'
+        run: node anthill.js
+`;
+
+    const anthillJs = `// Formica Anthill Server v1.0
+// Self-contained event processor — runs inside GitHub Actions
+
+const GH_TOKEN = process.env.FORMICA_TOKEN || process.env.GH_TOKEN;
+const STORAGE_REPO = process.env.FORMICA_STORAGE_REPO;
+const ANTHILL_REPO = process.env.ANTHILL_REPO || process.env.GITHUB_REPOSITORY;
+const IDLE_MS = parseInt(process.env.IDLE_TIMEOUT_MIN || '10') * 60 * 1000;
+const POLL_MS = parseInt(process.env.POLL_INTERVAL_SEC || '20') * 1000;
+
+const H = {
+  'Authorization': \`Bearer \${GH_TOKEN}\`,
+  'Content-Type': 'application/json',
+  'Accept': 'application/vnd.github.v3+json',
+  'User-Agent': 'Formica-Anthill/1.0'
+};
+
+async function ghGet(path) {
+  try { const r = await fetch(\`https://api.github.com\${path}\`, { headers: H }); return r.ok ? r.json() : null; } catch { return null; }
+}
+
+async function getFile(repo, path) {
+  const d = await ghGet(\`/repos/\${repo}/contents/\${path}\`);
+  if (!d) return { data: null, sha: null };
+  try { return { data: JSON.parse(Buffer.from(d.content.replace(/\\n/g,''), 'base64').toString()), sha: d.sha }; }
+  catch { return { data: null, sha: d.sha }; }
+}
+
+async function putFile(repo, path, data, sha, msg) {
+  const body = { message: \`[Anthill] \${msg}\`, content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64') };
+  if (sha) body.sha = sha;
+  try { const r = await fetch(\`https://api.github.com/repos/\${repo}/contents/\${path}\`, { method:'PUT', headers:H, body:JSON.stringify(body) }); return r.ok; }
+  catch { return false; }
+}
+
+async function processEvent(event) {
+  if (!STORAGE_REPO) { console.log('No FORMICA_STORAGE_REPO'); return; }
+  const { type, topic, sender, payload, level, source, message } = event || {};
+  const vaultPath = 'formica-colony-default-colony.json';
+  let { data: state, sha } = await getFile(STORAGE_REPO, vaultPath);
+  if (!state) state = { subscriptions: {}, chambers: {}, logs: [], soldierRules: {}, legionaryAdapters: {} };
+  const now = new Date().toISOString();
+
+  if (type === 'log' || type === 'forager') {
+    const log = { logId: \`log_\${Date.now()}\`, level: level || 'info', source: source || sender || 'external', message: message || JSON.stringify(payload || {}), timestamp: now };
+    state.logs = [log, ...(state.logs || [])].slice(0, 500);
+    await putFile(STORAGE_REPO, vaultPath, state, sha, \`Log from \${log.source}\`);
+    console.log(\`[LOG] \${log.source}: \${log.message}\`);
+    return;
+  }
+
+  if (type === 'event' || type === 'pheromone') {
+    const subs = Object.values(state.subscriptions || {}).filter(s => s.active && (s.topic === '*' || s.topic === topic));
+    const delivered = [];
+    for (const sub of subs) {
+      if (sub.targetWebhookUrl) {
+        try {
+          await fetch(sub.targetWebhookUrl, { method:'POST', headers:{'Content-Type':'application/json','User-Agent':'Formica-Anthill/1.0'}, body: JSON.stringify({ topic, sender, payload, timestamp: now }) });
+          delivered.push(sub.subscriberName);
+        } catch (e) { console.log(\`Failed: \${sub.subscriberName}: \${e.message}\`); }
+      } else { delivered.push(sub.subscriberName); }
+    }
+    const log = { logId: \`log_\${Date.now()}\`, level: 'info', source: 'Anthill-Pheromones', message: \`Event [\${topic}] from '\${sender}' -> \${delivered.length} subscribers\`, timestamp: now };
+    state.logs = [log, ...(state.logs || [])].slice(0, 500);
+    await putFile(STORAGE_REPO, vaultPath, state, sha, \`Pheromone: \${topic}\`);
+    console.log(\`[EVENT] \${topic}: \${delivered.join(', ')}\`);
+  }
+  if (type === 'ping') { console.log(\`[PING] from \${sender || 'Studio'}\`); }
+}
+
+async function hb(alive) {
+  const { sha } = await getFile(ANTHILL_REPO, 'heartbeat.json');
+  await putFile(ANTHILL_REPO, 'heartbeat.json', { alive, timestamp: new Date().toISOString() }, sha, alive ? 'Heartbeat' : 'Sleep');
+}
+
+async function main() {
+  console.log('Formica Anthill starting...');
+  if (!GH_TOKEN) { console.error('No token'); process.exit(1); }
+
+  const raw = process.env.INITIAL_PAYLOAD;
+  if (raw && raw !== 'null' && raw !== '{}') {
+    try { await processEvent(JSON.parse(raw)); } catch (e) { console.log(\`Init payload error: \${e.message}\`); }
+  }
+
+  await hb(true);
+  let lastActivity = Date.now();
+  console.log('Polling loop active...');
+
+  while (true) {
+    await new Promise(r => setTimeout(r, POLL_MS));
+    const { data: queue, sha } = await getFile(ANTHILL_REPO, 'queue.json');
+    if (queue && Array.isArray(queue) && queue.length > 0) {
+      console.log(\`Processing \${queue.length} queued events\`);
+      await putFile(ANTHILL_REPO, 'queue.json', [], sha, 'Clear queue');
+      for (const ev of queue) { await processEvent(ev); }
+      lastActivity = Date.now();
+      await hb(true);
+    }
+    if (Date.now() - lastActivity > IDLE_MS) {
+      console.log('Idle timeout. Sleeping.');
+      await hb(false);
+      break;
+    }
+    process.stdout.write(\`Idle: \${Math.round((Date.now()-lastActivity)/1000)}s\\r\`);
+  }
+}
+
+main().catch(e => { console.error(e); process.exit(1); });
+`;
+
+    const files = [
+      { path: '.github/workflows/anthill.yml', content: workflowYml, msg: 'Add Anthill workflow' },
+      { path: 'anthill.js', content: anthillJs, msg: 'Add Anthill server script' },
+      { path: 'queue.json', content: '[]', msg: 'Init queue', raw: true },
+      { path: 'heartbeat.json', content: JSON.stringify({ alive: false, timestamp: new Date().toISOString() }), msg: 'Init heartbeat', raw: true }
+    ];
+
+    for (const f of files) {
+      const content = f.raw ? btoa(f.content) : btoa(unescape(encodeURIComponent(f.content)));
+      // Check if file exists to get SHA
+      const existing = await fetch(`https://api.github.com/repos/${fullName}/contents/${f.path}`, { headers: this._ghHeaders });
+      const body = { message: `🐜 [Anthill] ${f.msg}`, content };
+      if (existing.ok) { const d = await existing.json(); body.sha = d.sha; }
+      await fetch(`https://api.github.com/repos/${fullName}/contents/${f.path}`, {
+        method: 'PUT', headers: this._ghHeaders, body: JSON.stringify(body)
+      });
+    }
+  }
+
+  async setAnthillVars(fullName) {
+    // Set repository variables (no encryption needed unlike secrets)
+    const vars = [
+      { name: 'FORMICA_TOKEN', value: this.token },
+      { name: 'FORMICA_STORAGE_REPO', value: `${this.currentUser}/.formica-storage` }
+    ];
+    for (const v of vars) {
+      const check = await fetch(`https://api.github.com/repos/${fullName}/actions/variables/${v.name}`, { headers: this._ghHeaders });
+      const method = check.ok ? 'PATCH' : 'POST';
+      const url = check.ok
+        ? `https://api.github.com/repos/${fullName}/actions/variables/${v.name}`
+        : `https://api.github.com/repos/${fullName}/actions/variables`;
+      await fetch(url, { method, headers: this._ghHeaders, body: JSON.stringify({ name: v.name, value: v.value }) });
+    }
+  }
+
+  async refreshAnthillStatus() {
+    if (!this.anthillRepo || !this.token) return;
+
+    // Read heartbeat
+    try {
+      const hbRes = await fetch(`https://api.github.com/repos/${this.anthillRepo}/contents/heartbeat.json`, { headers: this._ghHeaders });
+      if (hbRes.ok) {
+        const d = await hbRes.json();
+        this.anthillStatus = JSON.parse(atob(d.content.replace(/\n/g, '')));
+      }
+    } catch {}
+
+    // Read last runs
+    try {
+      const runsRes = await fetch(`https://api.github.com/repos/${this.anthillRepo}/actions/runs?per_page=5`, { headers: this._ghHeaders });
+      if (runsRes.ok) { const d = await runsRes.json(); this.anthillRuns = d.workflow_runs || []; }
+    } catch {}
+
+    this.renderAnthill();
+  }
+
+  async wakeAnthill() {
+    if (!this.anthillRepo) { this.toast('Anthill no configurado aún'); return; }
+    const res = await fetch(`https://api.github.com/repos/${this.anthillRepo}/dispatches`, {
+      method: 'POST', headers: this._ghHeaders,
+      body: JSON.stringify({ event_type: 'formica-ingest', client_payload: { type: 'ping', sender: 'Queen-Studio', timestamp: new Date().toISOString() } })
+    });
+    if (res.ok || res.status === 204) {
+      this.toast('⚡ Señal enviada. Cold start ~20-30s...');
+      setTimeout(() => this.refreshAnthillStatus(), 5000);
+    } else {
+      this.toast('Error al despertar el Anthill');
+    }
+  }
+
+  async dispatchToAnthill(event) {
+    if (!this.anthillRepo || !this.token) return;
+    // If anthill is alive: write to queue; otherwise dispatch directly (which also wakes it)
+    const alive = this.anthillStatus?.alive;
+    if (alive) {
+      // Append to queue.json
+      try {
+        const qRes = await fetch(`https://api.github.com/repos/${this.anthillRepo}/contents/queue.json`, { headers: this._ghHeaders });
+        if (qRes.ok) {
+          const d = await qRes.json();
+          const queue = JSON.parse(atob(d.content.replace(/\n/g, '')));
+          queue.push({ ...event, queuedAt: new Date().toISOString() });
+          await fetch(`https://api.github.com/repos/${this.anthillRepo}/contents/queue.json`, {
+            method: 'PUT', headers: this._ghHeaders,
+            body: JSON.stringify({ message: '🐜 [Queue] Add event', content: btoa(JSON.stringify(queue, null, 2)), sha: d.sha })
+          });
+          return;
+        }
+      } catch {}
+    }
+    // Wake + dispatch via repository_dispatch
+    fetch(`https://api.github.com/repos/${this.anthillRepo}/dispatches`, {
+      method: 'POST', headers: this._ghHeaders,
+      body: JSON.stringify({ event_type: 'formica-ingest', client_payload: event })
+    }).catch(() => {});
+  }
+
+  renderAnthill() {
+    const container = document.getElementById('anthill-content');
+    if (!container) return;
+    if (!this.anthillRepo) {
+      container.innerHTML = `<p style="color:var(--text-muted);">Inicializando Anthill... Si acaba de conectar, espere unos segundos.</p>`;
+      return;
+    }
+
+    const hb = this.anthillStatus;
+    const isAlive = hb?.alive === true;
+    const lastSeen = hb?.timestamp ? new Date(hb.timestamp).toLocaleString() : 'Desconocido';
+    const lastRun = this.anthillRuns[0];
+    const runStatus = lastRun ? lastRun.status : 'none';
+    const runConclusion = lastRun ? lastRun.conclusion : null;
+
+    const statusColor = isAlive ? 'var(--accent)' : 'var(--text-muted)';
+    const statusIcon = isAlive ? '🟢' : '⚫';
+    const statusLabel = isAlive ? 'ACTIVO — Procesando eventos' : 'DORMIDO — Se despertará al recibir eventos';
+
+    const repoUrl = `https://github.com/${this.anthillRepo}`;
+    const actionsUrl = `${repoUrl}/actions`;
+
+    container.innerHTML = `
+      <!-- Status Card -->
+      <div class="glass-card" style="margin-bottom:24px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center;">
+        <div>
+          <div style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">${statusIcon} ${statusLabel}</div>
+          <div style="font-size:0.82rem; color:var(--text-muted);">Repo: <a href="${repoUrl}" target="_blank" style="color:var(--primary);">${this.anthillRepo}</a></div>
+          <div style="font-size:0.82rem; color:var(--text-muted);">Último heartbeat: ${lastSeen}</div>
+          ${lastRun ? `<div style="font-size:0.82rem; color:var(--text-muted);">Último job: <span style="color:${runConclusion==='success'?'var(--accent)':runConclusion==='failure'?'var(--danger)':'var(--text-muted)'};">${runStatus} ${runConclusion || ''}</span> — <a href="${actionsUrl}" target="_blank" style="color:var(--primary);">Ver Actions →</a></div>` : ''}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:2.5rem; opacity:0.2;">🐜</div>
+          <div style="font-size:0.75rem; color:${statusColor}; font-weight:700;">${isAlive ? 'RUNNING' : 'IDLE'}</div>
+        </div>
+      </div>
+
+      <!-- Cold start info -->
+      <div class="glass-card" style="margin-bottom:24px; border-color:rgba(167,139,250,0.2);">
+        <h3 style="margin-bottom:12px; font-size:1rem;">⚡ Ciclo de Vida del Anthill</h3>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; text-align:center;">
+          ${[['💤','DORMIDO','Esperando tráfico'],['🚀','COLD START','~20-30s arranque'],['🔄','PROCESANDO','Eventos en cola'],['💤','AUTO-SLEEP','10 min sin tráfico']].map(([icon,label,desc])=>`
+            <div style="background:rgba(0,0,0,0.3); border-radius:8px; padding:12px;">
+              <div style="font-size:1.5rem;">${icon}</div>
+              <div style="font-size:0.75rem; font-weight:700; color:var(--primary); margin:4px 0;">${label}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">${desc}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Provider Integration -->
+      <h3 style="margin-bottom:16px; font-size:1rem; color:var(--primary);">🔌 Conectar Providers Externos</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; margin-bottom:24px;">
+        ${[
+          { icon: '🟠', name: 'AWS Lambda / EventBridge', color: '#FF9900', code: `await fetch('https://api.github.com/repos/${this.anthillRepo}/dispatches', {\n  method: 'POST',\n  headers: { 'Authorization': 'Bearer YOUR_PAT', 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    event_type: 'formica-ingest',\n    client_payload: { type: 'event', topic: 'aws.event', sender: 'lambda', payload: event }\n  })\n});` },
+          { icon: '🔵', name: 'Azure Functions / Event Grid', color: '#0078D4', code: `# En tu Azure Function:\nimport requests\nrequests.post(\n  'https://api.github.com/repos/${this.anthillRepo}/dispatches',\n  headers={'Authorization': 'Bearer YOUR_PAT'},\n  json={'event_type': 'formica-ingest', 'client_payload': {'type': 'log', 'source': 'azure', 'message': 'Event received'}}\n)` },
+          { icon: '⚡', name: 'Cualquier App / Servicio Propio', color: '#F7DF1E', code: `curl -X POST https://api.github.com/repos/${this.anthillRepo}/dispatches \\\n  -H "Authorization: Bearer YOUR_FORMICA_PAT" \\\n  -H "Content-Type: application/json" \\\n  -d '{"event_type":"formica-ingest","client_payload":{"type":"log","source":"mi-app","level":"info","message":"Hola Formica"}}'` }
+        ].map(p => `
+          <div class="glass-card" style="border-color:${p.color}33;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="font-size:1.3rem;">${p.icon}</span>
+              <strong style="font-size:0.9rem;">${p.name}</strong>
+            </div>
+            <pre style="background:rgba(0,0,0,0.4); border-radius:6px; padding:10px; font-size:0.68rem; color:var(--text-muted); overflow-x:auto; white-space:pre-wrap; margin:0;">${p.code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+          </div>`).join('')}
+      </div>
+
+      <!-- Variables info -->
+      <div class="glass-card" style="background:rgba(16,185,129,0.05); border-color:rgba(16,185,129,0.2);">
+        <h3 style="margin-bottom:10px; font-size:0.95rem;">✅ Variables configuradas automáticamente en tu Anthill</h3>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <span class="badge-tag" style="color:var(--accent); border-color:var(--accent);">FORMICA_TOKEN ✓</span>
+          <span class="badge-tag" style="color:var(--accent); border-color:var(--accent);">FORMICA_STORAGE_REPO → ${this.currentUser}/.formica-storage ✓</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">Reemplaza <code>YOUR_PAT</code> en los ejemplos con tu token de GitHub (el mismo que usas aquí en Formica Queen Studio).</p>
+      </div>
+    `;
+  }
 }
 
 window.consoleApp = new FormicaQueenConsole();
+
