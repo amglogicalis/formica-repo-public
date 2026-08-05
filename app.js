@@ -649,21 +649,22 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
   }
 
   populateConnectedProviderSelects() {
-    const connectedList = Object.values(this.state.connectedProviders || {});
+    const connectedMap = this.state.connectedProviders || {};
+    const activeConnectedList = Object.values(connectedMap).filter(p => p.active !== false);
 
     // Target selects: #waf-target-app, #event-sender, #sub-name, #log-source
     const wafSelect = document.getElementById('waf-target-app');
     if (wafSelect) {
       wafSelect.innerHTML = '';
-      if (!connectedList.length) {
-        wafSelect.innerHTML = `<option value="">⚠️ No hay providers conectados. [🔌 Conectar Provider en Dashboard]</option>`;
+      if (!activeConnectedList.length) {
+        wafSelect.innerHTML = `<option value="">⚠️ No hay providers activos conectados.</option>`;
       } else {
         const globalOpt = document.createElement('option');
         globalOpt.value = '*';
-        globalOpt.textContent = '🌐 Todos los Providers (* - Global)';
+        globalOpt.textContent = '🌐 Todos los Providers Activos (* - Global)';
         wafSelect.appendChild(globalOpt);
 
-        connectedList.forEach(p => {
+        activeConnectedList.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.name;
           opt.textContent = `${p.icon || '🔌'} ${p.name}`;
@@ -680,7 +681,7 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       // Global option
       const optAll = document.createElement('option');
       optAll.value = 'all_providers';
-      optAll.textContent = '🌐 Todos los Providers Conectados (*)';
+      optAll.textContent = '🌐 Todos los Providers Activos (*)';
       purgeProvSelect.appendChild(optAll);
 
       // Internal storage options
@@ -694,16 +695,20 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       optLogs.textContent = '🍃 Foragers (Histórico de Logs)';
       purgeProvSelect.appendChild(optLogs);
 
-      // Core Terra Apps
+      // Core Terra Apps (skip paused ones)
       (this.TERRA_APPS || []).forEach(app => {
-        const opt = document.createElement('option');
-        opt.value = app.name;
-        opt.textContent = `${app.icon || '🐜'} App ${app.name} (Terra Ecosystem)`;
-        purgeProvSelect.appendChild(opt);
+        const provObj = connectedMap[app.id] || Object.values(connectedMap).find(p => p.name === app.name);
+        const isPaused = provObj && provObj.active === false;
+        if (!isPaused) {
+          const opt = document.createElement('option');
+          opt.value = app.name;
+          opt.textContent = `${app.icon || '🐜'} App ${app.name} (Terra Ecosystem)`;
+          purgeProvSelect.appendChild(opt);
+        }
       });
 
-      // Connected Custom Providers
-      connectedList.forEach(p => {
+      // Connected Custom Active Providers
+      activeConnectedList.forEach(p => {
         if (!this.TERRA_APPS.some(a => a.name === p.name)) {
           const opt = document.createElement('option');
           opt.value = p.name;
