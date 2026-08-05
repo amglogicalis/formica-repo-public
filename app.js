@@ -820,6 +820,16 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     });
   }
 
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   clearLogsForProvider(sourceName) {
     if (!sourceName) return;
     const prevCount = (this.state.logs || []).length;
