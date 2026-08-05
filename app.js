@@ -340,31 +340,68 @@ class FormicaQueenConsole {
   }
 
   renderProviderHub() {
-    const grid = document.getElementById('terra-apps-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
     const connected = this.state.connectedProviders || {};
 
-    this.TERRA_APPS.forEach(app => {
-      const isConnected = !!connected[app.id];
-      const card = document.createElement('div');
-      card.className = 'resource-card';
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div class="resource-card-title" style="font-size:1.05rem;">${app.icon} ${app.name}</div>
-          <span class="badge-tag" style="color:${isConnected ? 'var(--accent)' : 'var(--text-muted)'}; border-color:${isConnected ? 'var(--accent)' : 'var(--border)'}">
-            ${isConnected ? '🔌 Conectada' : '⚪ No Conectada'}
-          </span>
-        </div>
-        <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">App Oficial del Ecosistema Terra (Local)</div>
-        <div class="resource-card-actions">
-          <button class="btn ${isConnected ? 'btn-secondary' : 'btn-accent'} btn-sm" onclick="consoleApp.connectTerraApp('${app.id}')">
-            ${isConnected ? '🔄 Reconectar App' : '🔌 Conectar App (1-Clic)'}
-          </button>
-        </div>`;
-      grid.appendChild(card);
-    });
+    // 1. Render Terra Apps Grid
+    const terraGrid = document.getElementById('terra-apps-grid');
+    if (terraGrid) {
+      terraGrid.innerHTML = '';
+      this.TERRA_APPS.forEach(app => {
+        const isConnected = !!connected[app.id];
+        const card = document.createElement('div');
+        card.className = 'resource-card';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div class="resource-card-title" style="font-size:1.05rem;">${app.icon} ${app.name}</div>
+            <span class="badge-tag" style="color:${isConnected ? 'var(--accent)' : 'var(--text-muted)'}; border-color:${isConnected ? 'var(--accent)' : 'var(--border)'}">
+              ${isConnected ? '🔌 Conectada' : '⚪ No Conectada'}
+            </span>
+          </div>
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">App Oficial del Ecosistema Terra (Local)</div>
+          <div class="resource-card-actions">
+            <button class="btn ${isConnected ? 'btn-secondary' : 'btn-accent'} btn-sm" onclick="consoleApp.connectTerraApp('${app.id}')">
+              ${isConnected ? '🔄 Reconectar App' : '🔌 Conectar App (1-Clic)'}
+            </button>
+          </div>`;
+        terraGrid.appendChild(card);
+      });
+    }
+
+    // 2. Render Custom External Providers Grid
+    const customGrid = document.getElementById('custom-providers-grid');
+    if (customGrid) {
+      customGrid.innerHTML = '';
+      const customProviders = Object.values(connected).filter(p => p.type !== 'terra-app');
+
+      if (!customProviders.length) {
+        customGrid.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem;">No hay providers externos registrados aún.</p>`;
+      } else {
+        customProviders.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'resource-card';
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <strong style="color:var(--primary); font-size:1rem;">${p.icon || '⚡'} ${p.name}</strong>
+              <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary);">${p.type}</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Conectado: ${new Date(p.connectedAt).toLocaleDateString()}</div>
+            <div class="resource-card-actions">
+              <button class="btn btn-danger btn-sm" onclick="consoleApp.disconnectProvider('${p.id}')">🗑️ Desconectar</button>
+            </div>`;
+          customGrid.appendChild(card);
+        });
+      }
+    }
+  }
+
+  disconnectProvider(providerId) {
+    if (this.state.connectedProviders && this.state.connectedProviders[providerId]) {
+      const name = this.state.connectedProviders[providerId].name;
+      delete this.state.connectedProviders[providerId];
+      this.renderAll();
+      this.persistState();
+      this.toast(`🗑️ Provider '${name}' desconectado`);
+    }
   }
 
   connectTerraApp(appId) {
