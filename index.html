@@ -585,6 +585,36 @@
     </div>
   </div>
 
+  <!-- Modal 7: Provider Onboarding & Integration Guide -->
+  <div id="modal-provider-onboarding" class="modal-backdrop hidden">
+    <div class="modal-box glass-card" style="max-width: 650px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
+        <h3 id="onboarding-provider-title" style="margin:0; color:var(--primary);">🔌 Guía de Conexión de Provider</h3>
+        <span id="onboarding-provider-badge" class="badge-tag"></span>
+      </div>
+
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0;">Sigue estos sencillos pasos para vincular tu aplicación o servicio a Formica y comenzar a emitir telemetría, eventos y reglas WAF en vivo:</p>
+
+      <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:16px;">
+        <h4 style="margin:0 0 8px 0; font-size:0.9rem; color:var(--text);">1️⃣ Bóveda & Configuración de Tu Cuenta Formica</h4>
+        <div style="font-size:0.8rem; color:var(--text-muted); display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>• <strong>Bóveda Storage:</strong> <code style="color:var(--accent);">amglogicalis/.formica-storage</code></div>
+          <div>• <strong>Servidor Anthill:</strong> <code style="color:var(--accent);">amglogicalis/formica-anthill</code></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <h4 style="margin:0 0 8px 0; font-size:0.9rem; color:var(--text);">2️⃣ Código a Añadir en tu Aplicación / Backend</h4>
+        <pre id="onboarding-code-snippet" style="background:#0a0a0f; border:1px solid var(--border); padding:12px; border-radius:8px; font-family:monospace; font-size:0.8rem; color:#a5b4fc; overflow-x:auto; max-height:220px; white-space:pre-wrap;"></pre>
+      </div>
+
+      <div class="modal-actions" style="margin-top:20px;">
+        <button id="btn-onboarding-copy" class="btn btn-secondary btn-sm" style="margin-right:auto;">📋 Copiar Código</button>
+        <button id="btn-onboarding-close" class="btn btn-primary">✅ Entendido, Provider Conectado</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
