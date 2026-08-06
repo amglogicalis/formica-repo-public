@@ -81,26 +81,53 @@ class FormicaQueenConsole {
 
     document.getElementById('sub-topic-preset')?.addEventListener('change', (e) => {
       const val = e.target.value;
-      if (val !== 'custom') {
-        document.getElementById('sub-topic').value = val;
+      const box = document.getElementById('sub-custom-topic-box');
+      const input = document.getElementById('sub-topic');
+      if (val === 'custom') {
+        box?.classList.remove('hidden');
+        if (input) { input.value = ''; input.focus(); }
+      } else {
+        box?.classList.add('hidden');
+        if (input) input.value = val;
       }
     });
 
     document.getElementById('event-topic-preset')?.addEventListener('change', (e) => {
       const val = e.target.value;
-      if (val !== 'custom') {
-        document.getElementById('event-topic').value = val;
-        this.updateEventMatchingPreview();
+      const box = document.getElementById('event-custom-topic-box');
+      const input = document.getElementById('event-topic');
+      if (val === 'custom') {
+        box?.classList.remove('hidden');
+        if (input) { input.value = ''; input.focus(); }
+      } else {
+        box?.classList.add('hidden');
+        if (input) input.value = val;
       }
+      this.updateEventMatchingPreview();
     });
 
     document.getElementById('sub-name-select')?.addEventListener('change', (e) => {
       const val = e.target.value;
-      if (val !== 'custom') {
-        document.getElementById('sub-name').value = val;
+      const box = document.getElementById('sub-custom-name-box');
+      const input = document.getElementById('sub-name');
+      if (val === 'custom') {
+        box?.classList.remove('hidden');
+        if (input) { input.value = ''; input.focus(); }
       } else {
-        document.getElementById('sub-name').value = '';
-        document.getElementById('sub-name').focus();
+        box?.classList.add('hidden');
+        if (input) input.value = val;
+      }
+    });
+
+    document.getElementById('event-sender')?.addEventListener('change', (e) => {
+      const val = e.target.value;
+      const box = document.getElementById('event-custom-sender-box');
+      const input = document.getElementById('event-custom-sender');
+      if (val === 'custom') {
+        box?.classList.remove('hidden');
+        if (input) { input.value = ''; input.focus(); }
+      } else {
+        box?.classList.add('hidden');
       }
     });
 
@@ -766,6 +793,12 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
         if (p.name === currentVal) opt.selected = true;
         senderSelect.appendChild(opt);
       });
+
+      const customSenderOpt = document.createElement('option');
+      customSenderOpt.value = 'custom';
+      customSenderOpt.textContent = '✏️ Emisor Personalizado...';
+      if (currentVal === 'custom') customSenderOpt.selected = true;
+      senderSelect.appendChild(customSenderOpt);
     }
 
     // Subscriber Name select in Modal 1: #sub-name-select
@@ -1375,9 +1408,18 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     }
   }
 
+  getEventSenderValue() {
+    const senderSelect = document.getElementById('event-sender');
+    const val = senderSelect?.value || 'Queen-Studio';
+    if (val === 'custom') {
+      return (document.getElementById('event-custom-sender')?.value || '').trim() || 'CustomSender';
+    }
+    return val;
+  }
+
   runEventDryRun() {
     const topic = (document.getElementById('event-topic')?.value || '').trim();
-    const sender = (document.getElementById('event-sender')?.value || '').trim();
+    const sender = this.getEventSenderValue();
     const channel = document.getElementById('event-delivery-channel')?.value || 'direct';
     const rawPayload = (document.getElementById('event-payload-json')?.value || '').trim();
 
@@ -1393,7 +1435,7 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     const summary = [
       `🔍 SIMULACIÓN DRY-RUN DE EVENTO PHEROMONES:`,
       `• Tópico: ${topic}`,
-      `• Emisor: ${sender || 'Queen-Studio'}`,
+      `• Emisor: ${sender}`,
       `• Canal elegido: ${channel === 'anthill' ? '🐜 Anthill Processing Server' : '⚡ Inmediato (Consola Directa)'}`,
       `• Suscriptores alcanzados: ${matched.length}`,
       matched.length ? matched.map(m => `   ↳ ${m.subscriberName} [${m.targetWebhookUrl ? 'Webhook: ' + m.targetWebhookUrl : 'Interno'}]`).join('\n') : '   (Sin receptores registrados)',
@@ -1405,7 +1447,7 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
 
   async pubEvent() {
     const topic = (document.getElementById('event-topic')?.value || '').trim();
-    const sender = (document.getElementById('event-sender')?.value || '').trim() || 'Queen-Studio';
+    const sender = this.getEventSenderValue();
     const channel = document.getElementById('event-delivery-channel')?.value || 'direct';
     const rawPayload = (document.getElementById('event-payload-json')?.value || '').trim();
 
