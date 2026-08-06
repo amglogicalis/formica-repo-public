@@ -81,26 +81,20 @@ class FormicaQueenConsole {
 
     document.getElementById('sub-topic-preset')?.addEventListener('change', (e) => {
       const val = e.target.value;
-      const box = document.getElementById('sub-custom-topic-box');
       const input = document.getElementById('sub-topic');
       if (val === 'custom') {
-        box?.classList.remove('hidden');
         if (input) { input.value = ''; input.focus(); }
       } else {
-        box?.classList.add('hidden');
         if (input) input.value = val;
       }
     });
 
     document.getElementById('event-topic-preset')?.addEventListener('change', (e) => {
       const val = e.target.value;
-      const box = document.getElementById('event-custom-topic-box');
       const input = document.getElementById('event-topic');
       if (val === 'custom') {
-        box?.classList.remove('hidden');
         if (input) { input.value = ''; input.focus(); }
       } else {
-        box?.classList.add('hidden');
         if (input) input.value = val;
       }
       this.updateEventMatchingPreview();
@@ -108,13 +102,10 @@ class FormicaQueenConsole {
 
     document.getElementById('sub-name-select')?.addEventListener('change', (e) => {
       const val = e.target.value;
-      const box = document.getElementById('sub-custom-name-box');
       const input = document.getElementById('sub-name');
       if (val === 'custom') {
-        box?.classList.remove('hidden');
         if (input) { input.value = ''; input.focus(); }
       } else {
-        box?.classList.add('hidden');
         if (input) input.value = val;
       }
     });
