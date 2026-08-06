@@ -1228,23 +1228,39 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     if (subId) {
       const s = this.state.subscriptions[subId];
       document.getElementById('modal-sub-title').textContent = 'Editar Suscripción';
+      const isPreset = ['security.alert', 'user.signup', 'purge.scheduled', 'log.error_spike', 'chamber.key_expired', '*'].includes(s.topic);
+      if (presetEl) presetEl.value = isPreset ? s.topic : 'custom';
       if (topicEl) topicEl.value = s.topic;
-      if (presetEl) presetEl.value = ['security.alert', 'user.signup', 'purge.scheduled', 'log.error_spike', 'chamber.key_expired', '*'].includes(s.topic) ? s.topic : 'custom';
+      if (presetEl && presetEl.value === 'custom') {
+        document.getElementById('sub-custom-topic-box')?.classList.remove('hidden');
+      } else {
+        document.getElementById('sub-custom-topic-box')?.classList.add('hidden');
+      }
+
       if (nameEl) nameEl.value = s.subscriberName;
       if (selectEl) {
         const hasOpt = Array.from(selectEl.options).some(o => o.value === s.subscriberName);
         selectEl.value = hasOpt ? s.subscriberName : 'custom';
+        if (selectEl.value === 'custom') {
+          document.getElementById('sub-custom-name-box')?.classList.remove('hidden');
+        } else {
+          document.getElementById('sub-custom-name-box')?.classList.add('hidden');
+        }
       }
       if (webhookEl) webhookEl.value = s.targetWebhookUrl || '';
     } else {
       document.getElementById('modal-sub-title').textContent = 'Nueva Suscripción Pub/Sub';
       if (presetEl) presetEl.value = 'security.alert';
       if (topicEl) topicEl.value = 'security.alert';
+      document.getElementById('sub-custom-topic-box')?.classList.add('hidden');
+
       if (selectEl && selectEl.options.length) {
         selectEl.selectedIndex = 0;
         if (nameEl) nameEl.value = selectEl.value !== 'custom' ? selectEl.value : '';
+        document.getElementById('sub-custom-name-box')?.classList.add('hidden');
       } else if (nameEl) {
         nameEl.value = '';
+        document.getElementById('sub-custom-name-box')?.classList.remove('hidden');
       }
       if (webhookEl) webhookEl.value = '';
     }
@@ -1331,8 +1347,11 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
     const payloadEl = document.getElementById('event-payload-json');
 
     if (presetEl) presetEl.value = 'security.alert';
-    if (topicEl && !topicEl.value) topicEl.value = 'security.alert';
-    if (senderEl && !senderEl.value && senderEl.options.length) senderEl.selectedIndex = 0;
+    if (topicEl) topicEl.value = 'security.alert';
+    document.getElementById('event-custom-topic-box')?.classList.add('hidden');
+    document.getElementById('event-custom-sender-box')?.classList.add('hidden');
+
+    if (senderEl && senderEl.options.length) senderEl.selectedIndex = 0;
     if (payloadEl && (!payloadEl.value || payloadEl.value.trim() === '{\n  \n}')) {
       payloadEl.value = JSON.stringify({
         event_type: "security.alert",
