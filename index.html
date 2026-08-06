@@ -264,27 +264,52 @@
     </div>
   </div>
 
-  <!-- MODALS SYSTEM -->
   <!-- Modal 1: Pub/Sub Subscription -->
   <div id="modal-sub" class="modal-backdrop hidden">
-    <div class="modal-box glass-card">
+    <div class="modal-box glass-card" style="max-width: 580px;">
       <h3 id="modal-sub-title">Nueva Suscripción Pub/Sub</h3>
-      <div class="form-group">
-        <label>Tópico (p. ej. 'user.created', 'security.alert', '*'):</label>
-        <input type="text" id="sub-topic" placeholder="security.alert" />
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+        <div>
+          <label>Categoría / Tipo de Evento:</label>
+          <select id="sub-topic-preset" class="form-select">
+            <option value="security.alert">🛡️ Seguridad & WAF (security.alert)</option>
+            <option value="user.signup">👤 Usuarios & Auth (user.signup)</option>
+            <option value="purge.scheduled">🌾 Purga & Sistema (purge.scheduled)</option>
+            <option value="log.error_spike">🍃 Telemetría (log.error_spike)</option>
+            <option value="chamber.key_expired">🕳️ Chambers K/V (chamber.key_expired)</option>
+            <option value="*">🌐 Todos los Eventos (* - Wildcard)</option>
+            <option value="custom">✏️ Tópico Personalizado a Mano</option>
+          </select>
+        </div>
+        <div>
+          <label>Tópico de la Suscripción (`topic`):</label>
+          <input type="text" id="sub-topic" placeholder="security.alert" />
+        </div>
       </div>
-      <div class="form-group">
-        <label>Nombre del Suscriptor / App:</label>
-        <input type="text" id="sub-name" placeholder="Lumina-IAM" />
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+        <div>
+          <label>Suscriptor / Provider Receptor:</label>
+          <select id="sub-name-select" class="form-select">
+            <option value="">Cargando providers activos...</option>
+          </select>
+        </div>
+        <div>
+          <label>Nombre del Suscriptor / App:</label>
+          <input type="text" id="sub-name" placeholder="Sinchlor-Notifier" />
+        </div>
       </div>
+
       <div class="form-group">
-        <label>Webhook Target URL (Opcional):</label>
+        <label>Target Webhook Endpoint (Opcional - POST HTTP):</label>
         <div style="display:flex; gap:8px;">
           <input type="text" id="sub-webhook" placeholder="https://api.myterra.org/webhook" style="flex:1;" />
-          <button id="btn-test-webhook" class="btn btn-secondary" style="flex-shrink:0;">🧪 Probar Webhook</button>
+          <button id="btn-test-webhook" class="btn btn-secondary" style="flex-shrink:0;" type="button">🧪 Probar Webhook</button>
         </div>
         <div id="sub-webhook-test-result" style="font-size:0.78rem; margin-top:6px;"></div>
       </div>
+
       <div class="modal-actions">
         <button id="btn-sub-cancel" class="btn btn-secondary">Cancelar</button>
         <button id="btn-sub-save" class="btn btn-primary">Guardar Suscripción</button>
@@ -294,18 +319,33 @@
 
   <!-- Modal 2: Publish Event with Structured JSON, Live Matching, Channel Selector & Dry-Run -->
   <div id="modal-event" class="modal-backdrop hidden">
-    <div class="modal-box glass-card" style="max-width: 580px;">
-      <h3>Publicar Evento Pheromones</h3>
+    <div class="modal-box glass-card" style="max-width: 600px;">
+      <h3 style="color: var(--primary); margin-bottom: 4px;">🧪 Publicar Evento Pheromones</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px;">Emite un evento de dominio hacia el Event Mesh para que lo reciban los suscriptores activos.</p>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;" class="form-group">
         <div>
-          <label>Tópico del Evento:</label>
-          <input type="text" id="event-topic" placeholder="security.alert" />
+          <label>Categoría / Tipo de Evento:</label>
+          <select id="event-topic-preset" class="form-select">
+            <option value="security.alert">🛡️ Seguridad & WAF (security.alert)</option>
+            <option value="user.signup">👤 Usuarios & Auth (user.signup)</option>
+            <option value="purge.scheduled">🌾 Purga & Sistema (purge.scheduled)</option>
+            <option value="log.error_spike">🍃 Telemetría (log.error_spike)</option>
+            <option value="chamber.key_expired">🕳️ Chambers K/V (chamber.key_expired)</option>
+            <option value="custom">✏️ Tópico Personalizado a Mano</option>
+          </select>
         </div>
         <div>
-          <label>Emisor (Sender):</label>
-          <input type="text" id="event-sender" placeholder="Sinchlor-Honeytrap" />
+          <label>Tópico Exacto del Evento:</label>
+          <input type="text" id="event-topic" placeholder="security.alert" />
         </div>
+      </div>
+
+      <div class="form-group">
+        <label>Emisor (Sender / App Origen):</label>
+        <select id="event-sender" class="form-select">
+          <option value="Queen-Studio">👑 Queen-Studio (Console Direct)</option>
+        </select>
       </div>
 
       <!-- Live Matching Preview -->
@@ -322,14 +362,14 @@
             <button id="btn-format-json" class="btn btn-secondary btn-sm" style="margin-left:6px;" type="button">✨ Formatear JSON</button>
           </div>
         </div>
-        <textarea id="event-payload-json" rows="5" style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.8rem; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:10px; resize:vertical;"></textarea>
+        <textarea id="event-payload-json" rows="4" class="form-textarea"></textarea>
       </div>
 
       <!-- Delivery Channel Selector -->
       <div class="form-group">
         <label>Canal de Entrega:</label>
-        <select id="event-delivery-channel" style="width:100%; padding:8px 12px; border-radius:6px; background:rgba(0,0,0,0.4); color:var(--text); border:1px solid var(--border);">
-          <option value="direct">⚡ Inmediato (Consola Directa — POST HTTP directo)</option>
+        <select id="event-delivery-channel" class="form-select">
+          <option value="direct">⚡ Inmediato (Consola Directa — POST HTTP a suscriptores)</option>
           <option value="anthill">🐜 Vía Anthill Processing Server (Cola asíncrona en GitHub Actions)</option>
         </select>
       </div>
