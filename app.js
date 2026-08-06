@@ -2014,6 +2014,7 @@ def main(mytimer):
 
   openAdapterModal(adapterId = null) {
     this.editingAdapterId = adapterId;
+    this.editingAdapterGroupIndex = null;
     this.populateConnectedProviderSelects();
 
     if (adapterId && this.state.legionaryAdapters[adapterId]) {
@@ -2069,29 +2070,115 @@ def main(mytimer):
     this.toast(`Grupo '${groupName}' añadido`);
   }
 
+  toggleAdapterGroupInlineEdit(idx) {
+    this.editingAdapterGroupIndex = (this.editingAdapterGroupIndex === idx) ? null : idx;
+    this.renderAddedGroupsList();
+  }
+
+  saveAdapterGroupInlineEdit(idx) {
+    const group = this.currentAdapterGroups[idx];
+    if (!group) return;
+
+    const nameInput = document.getElementById(`inline-edit-group-name-${idx}`);
+    const provSelect = document.getElementById(`inline-edit-group-provider-${idx}`);
+    const filterInput = document.getElementById(`inline-edit-group-filter-${idx}`);
+
+    const newName = nameInput?.value.trim();
+    if (!newName) { this.toast('El nombre del grupo no puede estar vacío.'); return; }
+
+    group.groupName = newName;
+    if (provSelect) group.provider = provSelect.value;
+    if (filterInput) group.filter = filterInput.value.trim() || 'expired_only';
+
+    this.editingAdapterGroupIndex = null;
+    this.renderAddedGroupsList();
+    this.toast(`Grupo '${newName}' actualizado`);
+  }
+
   removeResourceGroupFromBuilder(idx) {
     this.currentAdapterGroups.splice(idx, 1);
+    if (this.editingAdapterGroupIndex === idx) this.editingAdapterGroupIndex = null;
     this.renderAddedGroupsList();
   }
 
   renderAddedGroupsList() {
     const container = document.getElementById('adapter-added-groups-list');
+    if (!container) return;
     container.innerHTML = '';
+
     if (!this.currentAdapterGroups.length) {
-      container.innerHTML = `<p style="color:var(--text-muted); font-size:0.8rem;">No hay grupos añadidos aún.</p>`;
+      container.innerHTML = `<p style="color:var(--text-muted); font-size:0.82rem; margin:8px 0;">No hay grupos añadidos aún.</p>`;
       return;
     }
+
+    const providersList = Object.values(this.state.connectedProviders || {}).filter(p => p.active !== false);
+
     this.currentAdapterGroups.forEach((g, idx) => {
+      const isEditing = (this.editingAdapterGroupIndex === idx);
+
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'margin-bottom: 10px;';
+
       const row = document.createElement('div');
       row.className = 'added-group-row';
+      row.style.cssText = `
+        display:flex; justify-content:space-between; align-items:center; gap:10px;
+        padding: 10px 14px; background: rgba(0,0,0,0.35); border: 1px solid var(--border);
+        border-radius: ${isEditing ? '8px 8px 0 0' : '8px'};
+        ${isEditing ? 'border-bottom-color: var(--primary);' : ''}
+      `;
+
       row.innerHTML = `
-        <div style="display:flex; align-items:center; gap:8px; flex:1;">
-          <strong>📦 ${g.groupName}</strong>
-          <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary);">${(g.provider || 'ALL').toUpperCase()}</span>
-          <span style="font-size:0.75rem; color:var(--accent); font-weight:600;">(${g.filter || 'expired_only'})</span>
+        <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+          <strong style="color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📦 ${g.groupName}</strong>
+          <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:var(--primary); flex-shrink:0;">${(g.provider || 'ALL').toUpperCase()}</span>
+          <span style="font-size:0.75rem; color:var(--accent); font-weight:600; flex-shrink:0;">(${g.filter || 'expired_only'})</span>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="consoleApp.removeResourceGroupFromBuilder(${idx})" type="button">🗑️</button>`;
-      container.appendChild(row);
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleAdapterGroupInlineEdit(${idx})" type="button">
+            ${isEditing ? '✖ Cerrar' : '✏️ Editar'}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="consoleApp.removeResourceGroupFromBuilder(${idx})" type="button">🗑️</button>
+        </div>
+      `;
+
+      wrapper.appendChild(row);
+
+      // Inline Edit Box
+      if (isEditing) {
+        const panel = document.createElement('div');
+        panel.style.cssText = `
+          background: rgba(15,23,42,0.85); border: 1px solid var(--primary); border-top: none;
+          border-radius: 0 0 8px 8px; padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        `;
+
+        const provOptionsStr = [
+          `<option value="all_providers" ${g.provider==='all_providers'?'selected':''}>🌐 Todos los Providers (*)</option>`,
+          ...providersList.map(p => `<option value="${p.name}" ${g.provider===p.name?'selected':''}>${p.icon || '🔌'} ${p.name}</option>`)
+        ].join('');
+
+        panel.innerHTML = `
+          <div>
+            <label style="font-size:0.75rem; color:var(--primary); margin-bottom:4px; display:block;">Nombre del Grupo:</label>
+            <input type="text" id="inline-edit-group-name-${idx}" value="${g.groupName.replace(/"/g, '&quot;')}" />
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:var(--primary); margin-bottom:4px; display:block;">Provider:</label>
+            <select id="inline-edit-group-provider-${idx}" class="form-select">${provOptionsStr}</select>
+          </div>
+          <div style="grid-column: span 2;">
+            <label style="font-size:0.75rem; color:var(--primary); margin-bottom:4px; display:block;">Filtro / Expresión de Purga (ej. nectars_consumed, user-*, expired_only):</label>
+            <input type="text" id="inline-edit-group-filter-${idx}" value="${(g.filter || '').replace(/"/g, '&quot;')}" />
+          </div>
+          <div style="grid-column: span 2; display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+            <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleAdapterGroupInlineEdit(${idx})" type="button">Cancelar</button>
+            <button class="btn btn-accent btn-sm" onclick="consoleApp.saveAdapterGroupInlineEdit(${idx})" type="button">✓ Guardar Cambios del Grupo</button>
+          </div>
+        `;
+        wrapper.appendChild(panel);
+      }
+
+      container.appendChild(wrapper);
     });
   }
 
