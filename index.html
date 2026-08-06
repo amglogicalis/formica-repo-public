@@ -582,19 +582,20 @@
     </div>
   </div>
 
-  <!-- Modal 6: Legionarys Purge Adapter with Dynamic Resource Groups Builder -->
+  <!-- Modal 6: Legionarys Purge Adapter -->
   <div id="modal-adapter" class="modal-backdrop hidden">
-    <div class="modal-box glass-card" style="max-width: 650px;">
-      <h3 id="modal-adapter-title" style="color: var(--primary); margin-bottom: 4px;">⚔️ Adaptador de Purga Programada</h3>
-      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px;">Configura tareas de limpieza y destrucción automática de néctares, logs y recursos de tus providers conectados.</p>
+    <div class="modal-box glass-card" style="max-width: 650px; padding: 24px;">
+      <h3 id="modal-adapter-title" style="color: var(--primary); margin-bottom: 4px;">🌾 Adaptador de Purga Programada (Legionarys)</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px;">Configura tareas de limpieza y destrucción automática de néctares, logs y recursos de tus providers conectados.</p>
       
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+      <!-- 1. Identificación y Frecuencia -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;" class="form-group">
         <div>
-          <label>Nombre del Adaptador:</label>
-          <input type="text" id="adapter-name" placeholder="Limpiador Bóvedas Producción" />
+          <label style="font-weight: 600; margin-bottom: 6px; display: block;">Nombre del Adaptador:</label>
+          <input type="text" id="adapter-name" placeholder="ej. Limpiador Bóvedas Producción" />
         </div>
         <div>
-          <label>Frecuencia / Intervalo de Purga:</label>
+          <label style="font-weight: 600; margin-bottom: 6px; display: block;">Frecuencia / Intervalo de Purga:</label>
           <select id="adapter-frequency" class="form-select">
             <option value="daily_00">🕛 Diario a medianoche (00:00 UTC)</option>
             <option value="every_12h">⏱️ Cada 12 horas</option>
@@ -602,37 +603,37 @@
             <option value="every_1h">⏱️ Cada 1 hora</option>
             <option value="weekly">📅 Semanal (Domingos)</option>
             <option value="manual">🖐️ Solo Ejecución Manual</option>
-            <option value="custom_cron">✏️ Personalizado a mano (Cron / Intervalo)</option>
+            <option value="custom_cron">✏️ Personalizado (Cron / Intervalo)</option>
           </select>
         </div>
       </div>
 
-      <!-- Custom Frequency Text Input (Shown if frequency == 'custom_cron') -->
-      <div id="adapter-custom-freq-box" class="form-group hidden" style="background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 8px; border: 1px dashed var(--primary);">
-        <label style="font-size:0.78rem; color:var(--text);">Frecuencia / Intervalo Personalizado a Mano (Cron u Horario):</label>
-        <input type="text" id="adapter-custom-freq-text" placeholder="0 0 * * * (Cada medianoche) o cada 30 mins" />
+      <!-- Custom Frequency Text Input -->
+      <div id="adapter-custom-freq-box" class="form-group hidden" style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; border: 1px dashed var(--primary); margin-bottom: 18px;">
+        <label style="font-size:0.78rem; color:var(--primary); margin-bottom:4px; display:block;">Frecuencia / Intervalo Personalizado (Cron):</label>
+        <input type="text" id="adapter-custom-freq-text" placeholder="ej. 0 0 * * * o cada 30 mins" />
       </div>
 
       <!-- Dynamic Resource Group Builder Sub-Form -->
-      <div class="group-builder-card" style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
-        <h4 style="margin-top:0; margin-bottom:10px; font-size:0.9rem; color:var(--text);">➕ Añadir Grupo / Recurso Específico a Purgar</h4>
+      <div class="group-builder-card" style="background: rgba(0,0,0,0.35); padding: 16px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
+        <h4 style="margin-top:0; margin-bottom:12px; font-size:0.92rem; color:var(--primary);">➕ Añadir Grupo / Recurso Específico a Purgar</h4>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
           <div>
-            <label style="font-size:0.75rem; color:var(--text-muted);">Nombre del Grupo:</label>
-            <input type="text" id="builder-group-name" placeholder="Ej. Néctares Consumidos & Users user-*" />
+            <label style="font-size:0.78rem; color:var(--text-muted); margin-bottom:4px; display:block;">Nombre del Grupo:</label>
+            <input type="text" id="builder-group-name" placeholder="ej. Néctares Consumidos" />
           </div>
           <div>
-            <label style="font-size:0.75rem; color:var(--text-muted);">Fuente / Provider a Purgar:</label>
+            <label style="font-size:0.78rem; color:var(--text-muted); margin-bottom:4px; display:block;">Fuente / Provider a Purgar:</label>
             <select id="builder-group-provider" class="form-select">
               <option value="all_providers">🌐 Todos los Providers Conectados (*)</option>
             </select>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
           <div>
-            <label style="font-size:0.75rem; color:var(--text-muted);">Regla / Política Predefinida:</label>
+            <label style="font-size:0.78rem; color:var(--text-muted); margin-bottom:4px; display:block;">Regla / Política Predefinida:</label>
             <select id="builder-group-preset" class="form-select">
               <option value="nectars_consumed_only">🛡️ Solo Néctares Consumidos / Usados (Sinchlor)</option>
               <option value="petaltraps_all">🪤 PetalTraps & Trampas de Señuelo (Ballom)</option>
@@ -645,27 +646,29 @@
             </select>
           </div>
           <div>
-            <label style="font-size:0.75rem; color:var(--text-muted);">Filtro / Expresión a Mano (ej. user-*, expired):</label>
-            <input type="text" id="builder-group-filter" placeholder="nectars_consumed, user-* o expired_only" />
+            <label style="font-size:0.78rem; color:var(--text-muted); margin-bottom:4px; display:block;">Filtro / Expresión a Mano:</label>
+            <input type="text" id="builder-group-filter" placeholder="ej. nectars_consumed, user-* o expired_only" />
           </div>
         </div>
 
-        <button id="btn-add-resource-group" class="btn btn-accent btn-sm" type="button" style="width: 100%; margin-top: 4px; height: 34px;">
+        <button id="btn-add-resource-group" class="btn btn-accent btn-sm" type="button" style="width: 100%; height: 36px;">
           + Añadir Grupo de Purga al Adaptador
         </button>
       </div>
 
       <!-- Added Groups Container List -->
-      <div class="form-group" style="margin-top: 16px;">
-        <label>Grupos de Recursos Configurados en este Adaptador:</label>
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label style="font-weight: 600; margin-bottom: 8px; display: block;">Grupos de Recursos Configurados en este Adaptador:</label>
         <div id="adapter-added-groups-list" class="added-groups-list"></div>
       </div>
 
-      <div class="form-group">
-        <label>Target Webhook Endpoint / Notificación (Opcional):</label>
-        <input type="text" id="adapter-endpoint" placeholder="https://api.myterra.org/purge-hook" />
+      <!-- Target Webhook Endpoint -->
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Target Webhook Endpoint / Notificación (Opcional):</label>
+        <input type="text" id="adapter-endpoint" placeholder="https://api.mi-app.com/purge-hook" />
       </div>
-      <div class="modal-actions">
+
+      <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
         <button id="btn-adapter-cancel" class="btn btn-secondary">Cancelar</button>
         <button id="btn-adapter-save" class="btn btn-primary">Guardar Adaptador</button>
       </div>
