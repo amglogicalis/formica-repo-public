@@ -79,6 +79,31 @@ class FormicaQueenConsole {
     document.getElementById('event-topic')?.addEventListener('input', () => this.updateEventMatchingPreview());
     document.getElementById('event-payload-json')?.addEventListener('input', () => this.validateEventJsonPayload());
 
+    document.getElementById('sub-topic-preset')?.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val !== 'custom') {
+        document.getElementById('sub-topic').value = val;
+      }
+    });
+
+    document.getElementById('event-topic-preset')?.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val !== 'custom') {
+        document.getElementById('event-topic').value = val;
+        this.updateEventMatchingPreview();
+      }
+    });
+
+    document.getElementById('sub-name-select')?.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val !== 'custom') {
+        document.getElementById('sub-name').value = val;
+      } else {
+        document.getElementById('sub-name').value = '';
+        document.getElementById('sub-name').focus();
+      }
+    });
+
     document.getElementById('btn-connect-provider')?.addEventListener('click', () => this.switchToDashboardTab());
     document.getElementById('btn-provider-close')?.addEventListener('click', () => this.closeProviderModal());
     document.getElementById('btn-register-provider')?.addEventListener('click', () => this.registerProvider());
@@ -743,6 +768,27 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
       });
     }
 
+    // Subscriber Name select in Modal 1: #sub-name-select
+    const subNameSelect = document.getElementById('sub-name-select');
+    if (subNameSelect) {
+      const currentVal = subNameSelect.value;
+      subNameSelect.innerHTML = '';
+
+      activeConnectedList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = `${p.icon || '🔌'} ${p.name}`;
+        if (p.name === currentVal) opt.selected = true;
+        subNameSelect.appendChild(opt);
+      });
+
+      const customOpt = document.createElement('option');
+      customOpt.value = 'custom';
+      customOpt.textContent = '✏️ Otro Suscriptor / Personalizado';
+      if (currentVal === 'custom') customOpt.selected = true;
+      subNameSelect.appendChild(customOpt);
+    }
+
     // Log Source Select in Modal: #log-source
     const logSourceSelect = document.getElementById('log-source');
     if (logSourceSelect) {
@@ -1135,20 +1181,39 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
 
   openSubModal(subId = null) {
     this.editingSubId = subId;
+    this.populateConnectedProviderSelects();
+
     const testResultEl = document.getElementById('sub-webhook-test-result');
     if (testResultEl) testResultEl.innerHTML = '';
+
+    const presetEl = document.getElementById('sub-topic-preset');
+    const topicEl = document.getElementById('sub-topic');
+    const selectEl = document.getElementById('sub-name-select');
+    const nameEl = document.getElementById('sub-name');
+    const webhookEl = document.getElementById('sub-webhook');
 
     if (subId) {
       const s = this.state.subscriptions[subId];
       document.getElementById('modal-sub-title').textContent = 'Editar Suscripción';
-      document.getElementById('sub-topic').value = s.topic;
-      document.getElementById('sub-name').value = s.subscriberName;
-      document.getElementById('sub-webhook').value = s.targetWebhookUrl || '';
+      if (topicEl) topicEl.value = s.topic;
+      if (presetEl) presetEl.value = ['security.alert', 'user.signup', 'purge.scheduled', 'log.error_spike', 'chamber.key_expired', '*'].includes(s.topic) ? s.topic : 'custom';
+      if (nameEl) nameEl.value = s.subscriberName;
+      if (selectEl) {
+        const hasOpt = Array.from(selectEl.options).some(o => o.value === s.subscriberName);
+        selectEl.value = hasOpt ? s.subscriberName : 'custom';
+      }
+      if (webhookEl) webhookEl.value = s.targetWebhookUrl || '';
     } else {
       document.getElementById('modal-sub-title').textContent = 'Nueva Suscripción Pub/Sub';
-      document.getElementById('sub-topic').value = 'security.alert';
-      document.getElementById('sub-name').value = '';
-      document.getElementById('sub-webhook').value = '';
+      if (presetEl) presetEl.value = 'security.alert';
+      if (topicEl) topicEl.value = 'security.alert';
+      if (selectEl && selectEl.options.length) {
+        selectEl.selectedIndex = 0;
+        if (nameEl) nameEl.value = selectEl.value !== 'custom' ? selectEl.value : '';
+      } else if (nameEl) {
+        nameEl.value = '';
+      }
+      if (webhookEl) webhookEl.value = '';
     }
     document.getElementById('modal-sub').classList.remove('hidden');
   }
@@ -1225,14 +1290,22 @@ curl -X POST https://api.github.com/repos/amglogicalis/formica-anthill/dispatche
   // ─── EVENT PUBLISHING & LIVE MATCHING ─────────────────────────────────────
 
   openEventModal() {
+    this.populateConnectedProviderSelects();
+
+    const presetEl = document.getElementById('event-topic-preset');
     const topicEl = document.getElementById('event-topic');
     const senderEl = document.getElementById('event-sender');
     const payloadEl = document.getElementById('event-payload-json');
 
-    if (topicEl && !topicEl.value) topicEl.value = '';
-    if (senderEl && !senderEl.value) senderEl.value = '';
-    if (payloadEl && !payloadEl.value) {
-      payloadEl.value = '{\n  \n}';
+    if (presetEl) presetEl.value = 'security.alert';
+    if (topicEl && !topicEl.value) topicEl.value = 'security.alert';
+    if (senderEl && !senderEl.value && senderEl.options.length) senderEl.selectedIndex = 0;
+    if (payloadEl && (!payloadEl.value || payloadEl.value.trim() === '{\n  \n}')) {
+      payloadEl.value = JSON.stringify({
+        event_type: "security.alert",
+        level: "warn",
+        message: "Evento de prueba emitido desde Pheromones Event Mesh"
+      }, null, 2);
     }
 
     this.validateEventJsonPayload();
