@@ -2450,7 +2450,6 @@ main().catch(e => { console.error(e); process.exit(1); });
 
     for (const f of files) {
       const content = f.raw ? btoa(f.content) : btoa(unescape(encodeURIComponent(f.content)));
-      // Check if file exists to get SHA
       const existing = await fetch(`https://api.github.com/repos/${fullName}/contents/${f.path}`, { headers: this._ghHeaders });
       const body = { message: `🐜 [Anthill] ${f.msg}`, content };
       if (existing.ok) { const d = await existing.json(); body.sha = d.sha; }
@@ -2461,7 +2460,6 @@ main().catch(e => { console.error(e); process.exit(1); });
   }
 
   async setAnthillVars(fullName) {
-    // Set repository variables (no encryption needed unlike secrets)
     const vars = [
       { name: 'FORMICA_TOKEN', value: this.token },
       { name: 'FORMICA_STORAGE_REPO', value: `${this.currentUser}/.formica-storage` }
@@ -2479,6 +2477,15 @@ main().catch(e => { console.error(e); process.exit(1); });
   async refreshAnthillStatus() {
     if (!this.anthillRepo || !this.token) return;
 
+    // Check repo privacy visibility
+    try {
+      const repoRes = await fetch(`https://api.github.com/repos/${this.anthillRepo}`, { headers: this._ghHeaders });
+      if (repoRes.ok) {
+        const repoData = await repoRes.json();
+        this.anthillIsPrivate = repoData.private === true;
+      }
+    } catch {}
+
     // Read heartbeat
     try {
       const hbRes = await fetch(`https://api.github.com/repos/${this.anthillRepo}/contents/heartbeat.json`, { headers: this._ghHeaders });
@@ -2495,6 +2502,42 @@ main().catch(e => { console.error(e); process.exit(1); });
     } catch {}
 
     this.renderAnthill();
+  }
+
+  async toggleAnthillPrivacy(makePrivate) {
+    if (!this.anthillRepo || !this.token) return;
+    const actionText = makePrivate ? 'PRIVADO' : 'PÚBLICO';
+    const noteText = makePrivate
+      ? 'Al hacerlo privado, el repositorio quedará oculto a terceros. Ten en cuenta que tendrás una cuota de 2,000 minutos/mes gratuitos de GitHub Actions.'
+      : 'Al hacerlo público, dispondrás de minutos ilimitados y gratuitos de GitHub Actions, pero cualquiera podrá ver el repositorio.';
+
+    const confirmed = await this.confirmModal(`¿Estás seguro de que deseas cambiar la visibilidad de '${this.anthillRepo}' a ${actionText}?\n\n${noteText}`, {
+      title: `Cambiar Visibilidad a ${actionText}`,
+      icon: makePrivate ? '🔒' : '🌐',
+      acceptText: `Sí, Hacer ${actionText}`
+    });
+    if (!confirmed) return;
+
+    this.toast(`⏱️ Cambiando visibilidad a ${actionText}...`);
+
+    try {
+      const res = await fetch(`https://api.github.com/repos/${this.anthillRepo}`, {
+        method: 'PATCH',
+        headers: this._ghHeaders,
+        body: JSON.stringify({ private: makePrivate })
+      });
+
+      if (res.ok) {
+        this.anthillIsPrivate = makePrivate;
+        this.toast(`✅ Repositorio '${this.anthillRepo}' cambiado a ${actionText}`);
+        await this.refreshAnthillStatus();
+      } else {
+        const errData = await res.json();
+        this.toast(`⚠️ No se pudo cambiar a ${actionText}: ${errData.message || 'Error API'}`);
+      }
+    } catch (e) {
+      this.toast(`❌ Error de red al cambiar la visibilidad: ${e.message}`);
+    }
   }
 
   async wakeAnthill() {
@@ -2560,12 +2603,19 @@ main().catch(e => { console.error(e); process.exit(1); });
     const repoUrl = `https://github.com/${this.anthillRepo}`;
     const actionsUrl = `${repoUrl}/actions`;
 
+    const isPrivate = this.anthillIsPrivate === true;
+
     container.innerHTML = `
       <!-- Status Card -->
       <div class="glass-card" style="margin-bottom:24px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center;">
         <div>
           <div style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">${statusIcon} ${statusLabel}</div>
-          <div style="font-size:0.82rem; color:var(--text-muted);">Repo: <a href="${repoUrl}" target="_blank" style="color:var(--primary);">${this.anthillRepo}</a></div>
+          <div style="font-size:0.82rem; color:var(--text-muted);">
+            Repo: <a href="${repoUrl}" target="_blank" style="color:var(--primary);">${this.anthillRepo}</a>
+            <span class="badge-tag" style="margin-left:8px; color:${isPrivate ? 'var(--accent)' : 'var(--primary)'}; border-color:${isPrivate ? 'var(--accent)' : 'var(--primary)'}">
+              ${isPrivate ? '🔒 Privado' : '🌐 Público ($0 Actions)'}
+            </span>
+          </div>
           <div style="font-size:0.82rem; color:var(--text-muted);">Último heartbeat: ${lastSeen}</div>
           ${lastRun ? `<div style="font-size:0.82rem; color:var(--text-muted);">Último job: <span style="color:${runConclusion==='success'?'var(--accent)':runConclusion==='failure'?'var(--danger)':'var(--text-muted)'};">${runStatus} ${runConclusion || ''}</span> — <a href="${actionsUrl}" target="_blank" style="color:var(--primary);">Ver Actions →</a></div>` : ''}
         </div>
@@ -2574,6 +2624,37 @@ main().catch(e => { console.error(e); process.exit(1); });
           <div style="font-size:0.75rem; color:${statusColor}; font-weight:700;">${isAlive ? 'RUNNING' : 'IDLE'}</div>
         </div>
       </div>
+
+      <!-- Privacy Management Card -->
+      ${!isPrivate ? `
+        <div class="glass-card" style="margin-bottom:24px; border-color:rgba(99,102,241,0.3); background:rgba(99,102,241,0.05);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+            <div style="max-width:640px;">
+              <div style="font-size:0.95rem; font-weight:700; color:var(--primary); margin-bottom:4px;">
+                🌐 Visibilidad del Repositorio: PÚBLICO
+              </div>
+              <div style="font-size:0.8rem; color:var(--text-muted); line-height:1.4;">
+                El repositorio <code>formica-anthill</code> es público. Cualquier usuario en GitHub puede ver el código del workflow y las ejecuciones en la pestaña Actions. Cuentas con <strong>minutos ilimitados y 100% gratuitos de GitHub Actions</strong>. Si deseas más privacidad sobre la infraestructura, puedes cambiarlo a privado.
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleAnthillPrivacy(true)" style="border-color:var(--primary); color:var(--primary);">
+              🔒 Cambiar a PRIVADO (Máxima Privacidad)
+            </button>
+          </div>
+        </div>
+      ` : `
+        <div class="glass-card" style="margin-bottom:24px; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.05);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.2rem;">🔒</span>
+              <strong style="font-size:0.9rem; color:var(--accent);">Repositorio PRIVADO — Histórico Oculto a Terceros</strong>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleAnthillPrivacy(false)">
+              🌐 Cambiar a PÚBLICO ($0 Actions Ilimitadas)
+            </button>
+          </div>
+        </div>
+      `}
 
       <!-- Cold start info -->
       <div class="glass-card" style="margin-bottom:24px; border-color:rgba(167,139,250,0.2);">
@@ -2592,7 +2673,7 @@ main().catch(e => { console.error(e); process.exit(1); });
       <h3 style="margin-bottom:16px; font-size:1rem; color:var(--primary);">🔌 Conectar Providers Externos</h3>
       <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; margin-bottom:24px;">
         ${[
-          { icon: '🟠', name: 'AWS Lambda / EventBridge', color: '#FF9900', code: `await fetch('https://api.github.com/repos/${this.anthillRepo}/dispatches', {\n  method: 'POST',\n  headers: { 'Authorization': 'Bearer YOUR_PAT', 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    event_type: 'formica-ingest',\n    client_payload: { type: 'event', topic: 'aws.event', sender: 'lambda', payload: event }\n  })\n});` },
+          { icon: '🟠', name: 'AWS Lambda / EventBridge', color: '#FF9900', code: `await fetch('https://api.github.com/repos/${this.anthillRepo}/dispatches',\n  method: 'POST',\n  headers: { 'Authorization': 'Bearer YOUR_PAT', 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    event_type: 'formica-ingest',\n    client_payload: { type: 'event', topic: 'aws.event', sender: 'lambda', payload: event }\n  })\n});` },
           { icon: '🔵', name: 'Azure Functions / Event Grid', color: '#0078D4', code: `# En tu Azure Function:\nimport requests\nrequests.post(\n  'https://api.github.com/repos/${this.anthillRepo}/dispatches',\n  headers={'Authorization': 'Bearer YOUR_PAT'},\n  json={'event_type': 'formica-ingest', 'client_payload': {'type': 'log', 'source': 'azure', 'message': 'Event received'}}\n)` },
           { icon: '⚡', name: 'Cualquier App / Servicio Propio', color: '#F7DF1E', code: `curl -X POST https://api.github.com/repos/${this.anthillRepo}/dispatches \\\n  -H "Authorization: Bearer YOUR_FORMICA_PAT" \\\n  -H "Content-Type: application/json" \\\n  -d '{"event_type":"formica-ingest","client_payload":{"type":"log","source":"mi-app","level":"info","message":"Hola Formica"}}'` }
         ].map(p => `
