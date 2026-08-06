@@ -55,7 +55,11 @@ class FormicaQueenConsole {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById(btn.getAttribute('data-tab')).classList.add('active');
+        const tabId = btn.getAttribute('data-tab');
+        document.getElementById(tabId)?.classList.add('active');
+        if (tabId === 'tab-anthill') {
+          this.refreshAnthillStatus();
+        }
       });
     });
 
@@ -2475,7 +2479,11 @@ main().catch(e => { console.error(e); process.exit(1); });
   }
 
   async refreshAnthillStatus() {
-    if (!this.anthillRepo || !this.token) return;
+    if (!this.token) return;
+    if (!this.anthillRepo && this.currentUser) {
+      this.anthillRepo = `${this.currentUser}/formica-anthill`;
+    }
+    if (!this.anthillRepo) return;
 
     // Check repo privacy visibility
     try {
