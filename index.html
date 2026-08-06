@@ -272,8 +272,8 @@
 
       <!-- 1. Tópico / Tipo de Evento -->
       <div class="form-group" style="margin-bottom: 18px;">
-        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Canal / Tópico a Escuchar (`topic`):</label>
-        <select id="sub-topic-preset" class="form-select">
+        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Categoría de Eventos:</label>
+        <select id="sub-topic-preset" class="form-select" style="margin-bottom: 8px;">
           <option value="security.alert">🛡️ Seguridad & WAF (security.alert)</option>
           <option value="user.signup">👤 Usuarios & Auth (user.signup)</option>
           <option value="purge.scheduled">🌾 Purga & Sistema (purge.scheduled)</option>
@@ -283,22 +283,22 @@
           <option value="custom">✏️ Tópico Personalizado...</option>
         </select>
 
-        <div id="sub-custom-topic-box" class="hidden" style="margin-top: 10px;">
-          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Escribe el Tópico Personalizado:</label>
-          <input type="text" id="sub-topic" placeholder="ej. pedidos.creados, audit.log" />
+        <div id="sub-custom-topic-box">
+          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Tópico exacto a registrar (`topic`):</label>
+          <input type="text" id="sub-topic" placeholder="ej. security.alert o pedidos.creados" />
         </div>
       </div>
 
       <!-- 2. Suscriptor / App Receptor -->
       <div class="form-group" style="margin-bottom: 18px;">
         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Suscriptor / Provider Receptor:</label>
-        <select id="sub-name-select" class="form-select">
+        <select id="sub-name-select" class="form-select" style="margin-bottom: 8px;">
           <option value="">Cargando providers activos...</option>
         </select>
 
-        <div id="sub-custom-name-box" class="hidden" style="margin-top: 10px;">
-          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Escribe el Nombre del Suscriptor:</label>
-          <input type="text" id="sub-name" placeholder="ej. ServicioNotificaciones" />
+        <div id="sub-custom-name-box">
+          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Nombre exacto del suscriptor (`subscriberName`):</label>
+          <input type="text" id="sub-name" placeholder="ej. Sinchlor o ServicioNotificaciones" />
         </div>
       </div>
 
@@ -327,8 +327,8 @@
 
       <!-- 1. Tópico / Tipo de Evento -->
       <div class="form-group" style="margin-bottom: 18px;">
-        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Categoría / Tópico del Evento:</label>
-        <select id="event-topic-preset" class="form-select">
+        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Categoría de Eventos:</label>
+        <select id="event-topic-preset" class="form-select" style="margin-bottom: 8px;">
           <option value="security.alert">🛡️ Seguridad & WAF (security.alert)</option>
           <option value="user.signup">👤 Usuarios & Auth (user.signup)</option>
           <option value="purge.scheduled">🌾 Purga & Sistema (purge.scheduled)</option>
@@ -337,21 +337,21 @@
           <option value="custom">✏️ Tópico Personalizado...</option>
         </select>
 
-        <div id="event-custom-topic-box" class="hidden" style="margin-top: 10px;">
-          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Escribe el Tópico Exacto:</label>
-          <input type="text" id="event-topic" placeholder="ej. orden.completada" />
+        <div id="event-custom-topic-box">
+          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Tópico exacto a publicar (`topic`):</label>
+          <input type="text" id="event-topic" placeholder="ej. security.alert o orden.completada" />
         </div>
       </div>
 
       <!-- 2. Emisor (Sender) -->
       <div class="form-group" style="margin-bottom: 18px;">
         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Emisor (Sender / App Origen):</label>
-        <select id="event-sender" class="form-select">
+        <select id="event-sender" class="form-select" style="margin-bottom: 8px;">
           <option value="Queen-Studio">👑 Queen-Studio (Console Direct)</option>
         </select>
 
-        <div id="event-custom-sender-box" class="hidden" style="margin-top: 10px;">
-          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Escribe el Emisor Personalizado:</label>
+        <div id="event-custom-sender-box" class="hidden">
+          <label style="font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; display: block;">Emisor Personalizado (`sender`):</label>
           <input type="text" id="event-custom-sender" placeholder="ej. ScriptPruebas" />
         </div>
       </div>
