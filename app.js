@@ -2634,7 +2634,7 @@ main().catch(e => { console.error(e); process.exit(1); });
                 🌐 Visibilidad del Repositorio: PÚBLICO
               </div>
               <div style="font-size:0.8rem; color:var(--text-muted); line-height:1.4;">
-                El repositorio <code>formica-anthill</code> es público. Cualquier usuario en GitHub puede ver el código del workflow y las ejecuciones en la pestaña Actions. Cuentas con <strong>minutos ilimitados y 100% gratuitos de GitHub Actions</strong>. Si deseas más privacidad sobre la infraestructura, puedes cambiarlo a privado.
+                El repositorio <code>formica-anthill</code> es público. Cualquier usuario en GitHub puede ver el código del workflow y las ejecuciones en la pestaña Actions. Cuentas con <strong>minutos ilimitados y 100% gratuitos de GitHub Actions</strong>. Si deseas más privacidad sobre la infraestructura, puedes cambiarlo a privado, pero tendrás un límite de minutos sobre la ejecución de actions.
               </div>
             </div>
             <button class="btn btn-secondary btn-sm" onclick="consoleApp.toggleAnthillPrivacy(true)" style="border-color:var(--primary); color:var(--primary);">
