@@ -17,7 +17,7 @@
 //        GITHUB_TOKEN=<token> node formica-e2e-test.mjs
 // ============================================================
 
-import { Formica } from '../Formica/dist/index.js';
+import { Formica, TERRA_APPS_REGISTRY, TerraAutoInjector } from '../Formica/dist/index.js';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -588,7 +588,44 @@ async function runTests() {
   assert('[Web] Provider disconnected', !consoleSimFormica.listConnectedProviders().find(p => p.id === 'web-provider-01'));
 
   // ════════════════════════════════════════════
-  //  [11] FINAL REPORT
+  //  [11] TERRA ECOSYSTEM APPS REGISTRY & AUTO-INJECTOR (18 APPS)
+  // ════════════════════════════════════════════
+  section('[11] TERRA ECOSYSTEM APPS REGISTRY (18 APPS)');
+
+  assert('TERRA_APPS_REGISTRY has all 18 Terra apps', Array.isArray(TERRA_APPS_REGISTRY) && TERRA_APPS_REGISTRY.length === 18, `count=${TERRA_APPS_REGISTRY?.length}`);
+
+  const requiredApps = [
+    'hiven', 'rolla', 'webbl', 'combase', 'lumina', 'ballom', 'termes',
+    'sinchlor', 'waisp', 'syncada', 'grillout', 'maskito', 'lepism',
+    'mantx', 'mockhive', 'sphexn', 'phryx', 'libella'
+  ];
+
+  const missingApps = requiredApps.filter(id => !TERRA_APPS_REGISTRY.some(a => a.id === id));
+  assert('All 18 specific Terra apps are registered in SDK', missingApps.length === 0, missingApps.length ? `missing: ${missingApps.join(', ')}` : 'all 18 found');
+
+  const injector = new TerraAutoInjector();
+  const statuses = injector.listAppsStatus();
+  assert('TerraAutoInjector.listAppsStatus() returns 18 statuses', Array.isArray(statuses) && statuses.length === 18, `count=${statuses.length}`);
+
+  // Test CLI providers apps command
+  const appsCliResult = runCLI('providers', 'apps');
+  assert('CLI providers apps exits cleanly', appsCliResult.status === 0, `exit=${appsCliResult.status}`);
+  assert('CLI providers apps lists 18 apps', appsCliResult.stdout.includes('Terra Ecosystem Apps Registry (18)'));
+  assert('CLI providers apps lists Maskito', appsCliResult.stdout.includes('Maskito'));
+  assert('CLI providers apps lists Libella', appsCliResult.stdout.includes('Libella'));
+  assert('CLI providers apps lists WAISP', appsCliResult.stdout.includes('WAISP'));
+
+  // Test CLI 1-click connect by app slug
+  const connectCliResult = runCLI('providers', 'connect', '--app', 'libella');
+  assert('CLI providers connect --app libella exits cleanly', connectCliResult.status === 0, `exit=${connectCliResult.status}`);
+  assert('CLI providers connect confirms connection', connectCliResult.stdout.includes("Provider 'Libella' connected"));
+
+  // Disconnect clean up
+  const dcCliResult = runCLI('providers', 'disconnect', '--id', 'libella');
+  assert('CLI providers disconnect --id libella exits cleanly', dcCliResult.status === 0, `exit=${dcCliResult.status}`);
+
+  // ════════════════════════════════════════════
+  //  [12] FINAL REPORT
   // ════════════════════════════════════════════
   console.log(`\n\n${c.bold}${c.magenta}${'▓'.repeat(60)}`);
   console.log(`  🐜  FORMICA E2E TEST RESULTS`);

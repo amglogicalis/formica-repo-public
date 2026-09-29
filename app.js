@@ -5,13 +5,24 @@ class FormicaQueenConsole {
     this.token = localStorage.getItem('formica_gh_token') || '';
     this.currentUser = null;
     this.TERRA_APPS = [
-      { id: 'sinchlor', name: 'Sinchlor', icon: '🐝', relativePath: 'sinchlor/Sinchlor', entryFile: 'app.js' },
-      { id: 'lumina', name: 'Lumina', icon: '💡', relativePath: 'lumina/Lumina', entryFile: 'app.js' },
-      { id: 'ballom', name: 'Ballom', icon: '🎈', relativePath: 'ballom/Ballom', entryFile: 'app.js' },
-      { id: 'rolla', name: 'Rolla', icon: '🎲', relativePath: 'rolla/Rolla', entryFile: 'app.js' },
-      { id: 'termes', name: 'Termes', icon: '🐜', relativePath: 'termes/Termes', entryFile: 'app.js' },
-      { id: 'combase', name: 'Combase', icon: '📦', relativePath: 'combase/Combase', entryFile: 'app.js' },
-      { id: 'webbl', name: 'WEBBL', icon: '🌐', relativePath: 'webbl/Webbl', entryFile: 'app.js' }
+      { id: 'hiven', name: 'Hiven', icon: '🐝', category: 'AI & Multi-Agent Swarm', relativePath: 'hiven/hiven-komb-queen', entryFile: 'src/index.ts' },
+      { id: 'rolla', name: 'Rolla', icon: '🗄️', category: 'Object Storage & Releases', relativePath: 'rolla/Rolla', entryFile: 'packages/rolla-sdk/src/index.ts' },
+      { id: 'webbl', name: 'WEBBL', icon: '🌐', category: 'Edge Hosting & Serverless Morphs', relativePath: 'webbl/Webbl', entryFile: 'console/app.js' },
+      { id: 'combase', name: 'Combase', icon: '🏛️', category: 'Database & Time-Travel', relativePath: 'combase/Combase', entryFile: 'console/app.js' },
+      { id: 'lumina', name: 'Lumina', icon: '🔐', category: 'IAM, JWT & Sanctuaries', relativePath: 'lumina/Lumina', entryFile: 'console/app.js' },
+      { id: 'ballom', name: 'Ballom', icon: '🎭', category: 'DNS Shield, API Gateway & Shortlinks', relativePath: 'ballom/Ballom', entryFile: 'packages/ballom-sdk/src/index.ts' },
+      { id: 'termes', name: 'Termes', icon: '🕷️', category: 'Web Scraping & Reverse APIs', relativePath: 'termes/Termes', entryFile: 'packages/termes-sdk/src/index.ts' },
+      { id: 'sinchlor', name: 'Sinchlor', icon: '🛡️', category: 'Secrets Camouflage & Honeytokens', relativePath: 'sinchlor/Sinchlor', entryFile: 'src/index.ts' },
+      { id: 'waisp', name: 'WAISP', icon: '🛡️', category: 'DAST, Red Teaming & Nectar Traps', relativePath: 'waisp/Waisp', entryFile: 'packages/waisp-sdk/src/index.ts' },
+      { id: 'syncada', name: 'Syncada', icon: '⏰', category: 'Master Cron & Serverless Lambdas', relativePath: 'syncada/Syncada', entryFile: 'src/index.ts' },
+      { id: 'grillout', name: 'Grillout', icon: '🦗', category: 'Ephemeral Queues & Multicast Webhooks', relativePath: 'grillout/Grillout', entryFile: 'packages/grillout-sdk/src/index.ts' },
+      { id: 'maskito', name: 'Maskito', icon: '🦟', category: 'Swarm Stress Testing & Chaos Engine', relativePath: 'maskito/Maskito', entryFile: 'src/index.ts' },
+      { id: 'lepism', name: 'Lepism', icon: '🦎', category: 'Structural Health & Polyglot Deps', relativePath: 'lepism/Lepism', entryFile: 'src/index.ts' },
+      { id: 'mantx', name: 'Mantx', icon: '🧠', category: 'AutoML, Model Fine-Tuning & Memory', relativePath: 'mantx/Mantx', entryFile: 'src/index.ts' },
+      { id: 'mockhive', name: 'MockHive', icon: '🐝', category: 'Ubuntu HiveNodes & Map-Reduce Swarm', relativePath: 'mockhive/Mockhive', entryFile: 'src/index.ts' },
+      { id: 'sphexn', name: 'Sphexn', icon: '🐝', category: 'Deterministic Governance & Anti-Hallucination', relativePath: 'sphexn/Sphexn', entryFile: 'src/index.ts' },
+      { id: 'phryx', name: 'Phryx', icon: '🦟', category: 'Phantom Mesh, SSH CA & Zero-Trust Tunnels', relativePath: 'phryx/Phryx', entryFile: 'src/index.ts' },
+      { id: 'libella', name: 'Libella', icon: '📊', category: 'Universal Panopticon, FinOps & Circuit Breakers', relativePath: 'libella/Libella', entryFile: 'src/index.ts' }
     ];
 
     this.state = {
@@ -413,7 +424,7 @@ class FormicaQueenConsole {
               ${!isConnected ? '⚪ No Conectada' : (isActive ? '🟢 Conectada' : '⏸️ Pausada')}
             </span>
           </div>
-          <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">App Oficial del Ecosistema Terra (Local)</div>
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">${app.category || 'App Oficial del Ecosistema Terra (Local)'}</div>
           <div class="resource-card-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
             <button class="btn ${isConnected ? 'btn-secondary' : 'btn-accent'} btn-sm" onclick="consoleApp.connectTerraApp('${app.id}')">
               ${isConnected ? '🔄 Reconectar' : '🔌 Conectar'}
@@ -507,6 +518,7 @@ class FormicaQueenConsole {
       id: app.id,
       name: app.name,
       icon: app.icon,
+      category: app.category,
       type: 'terra-app',
       connectedAt: new Date().toISOString()
     };
